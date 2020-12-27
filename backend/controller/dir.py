@@ -410,8 +410,8 @@ class List(DefaultHandler):
             if obj.type == "dir":
                 obj.icon = self.static_url("folder.png", include_version=False)
 
-                # get tag
-                obj.tags = space.driver.get_tags(target=obj.id, type_id=2)
+                # get attribute tag
+                obj.tags = space.driver.union_attribute_tags(target=obj.id, type_id=2)
             elif obj.type == "file":
                 obj.icon = self.static_url(io.get_icon_name(
                     obj.ext) + ".png", include_version=False)
@@ -426,8 +426,8 @@ class List(DefaultHandler):
                     return
                 obj.attr = attr_list[0]
 
-                # get tag by attribute id
-                obj.tags = space.driver.get_tags(target=obj.attribute, type_id=1)
+                # get attribute tag by attribute id
+                obj.tags = space.driver.union_attribute_tags(target=obj.attribute, type_id=1)
 
         self.write_json(status="success", data={
                         "list": result_list, "total": total})

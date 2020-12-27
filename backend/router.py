@@ -1,7 +1,7 @@
 ''' router '''
 from tornado.web import Application
 
-from backend.controller import dir as cdir, workspace, error, media, tag
+from backend.controller import dir as cdir, workspace, error, media, tag, attributetag
 from backend import config
 
 def make_app():
@@ -25,7 +25,11 @@ def make_app():
         (r"/media/link", media.Link, dict(name="get file link")),
 
         (r"/tag/add", tag.Add, dict(name="add tag")),
+        (r"/tag/list", tag.List, dict(name="list tag")),
         (r"/tag/update", tag.Update, dict(name="update tag")),
+
+        (r"/attributetag/add", attributetag.Add, dict(name="add attribute tag")),
+        (r"/attributetag/update", attributetag.Update, dict(name="update attribute tag")),
 
         (r"/", error.NotFound)
     ], **options.settings)

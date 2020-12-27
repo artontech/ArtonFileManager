@@ -23,6 +23,11 @@ from backend.model.file import (
     File,
     get_file_list
 )
+from backend.model.attributetag import (
+    AttributeTag,
+    get_attribute_tag_list,
+    union_attribute_tag_list
+)
 from backend.model.tag import (
     Tag,
     get_tag_list
@@ -40,11 +45,16 @@ def safe(s: str, collate: bool = False) -> str:
 
 class MySQLDriver(Driver):
     def __init__(self, options, workspace):
-        self.options = options
-        self.workspace = workspace
+        self.database = None
         self.db = None
         self.db_name = r"arton_file_manager"
-        self.json_path = os.path.join(self.workspace, "afm_config.json")
+        self.host = None
+        self.json_path = os.path.join(workspace, "afm_config.json")
+        self.options = options
+        self.password = None
+        self.port = None
+        self.user = None
+        self.workspace = workspace
 
     def init(self):
         MYSQL_PATH = self.options.mysql_path
@@ -101,11 +111,11 @@ class MySQLDriver(Driver):
         with open(self.json_path, 'r+') as f:
             config_json = json.load(f)
         last_workspace = config_json.get("workspace", self.workspace)
-        host = config_json.get("host", "localhost")
-        user = config_json.get("user", "root")
-        password = config_json.get("password", "")
-        database = config_json.get("database", "arton_file_manager")
-        port = config_json.get("port", 13311)
+        self.host = config_json.get("host", "localhost")
+        self.user = config_json.get("user", "root")
+        self.password = config_json.get("password", "")
+        self.database = config_json.get("database", "arton_file_manager")
+        self.port = config_json.get("port", 13311)
 
         # if workspace changed, fix mysql
         if os.path.abspath(last_workspace) != os.path.abspath(self.workspace):
@@ -149,21 +159,14 @@ class MySQLDriver(Driver):
         if ret.returncode != 0:
             return ret
 
-        self.db = pymysql.connect(host=host,
-                                  user=user, password=password,
-                                  database=database, port=port)
-        if self.db is None:
+        if self.open_db() is None:
             ret.returncode = -99
             return ret
 
         return ret
 
     def close(self):
-        if self.db is not None:
-            try:
-                self.db.close()
-            except Exception as e:
-                logging.info("close fail", e)
+        self.close_db()
 
         result = True
 
@@ -180,12 +183,30 @@ class MySQLDriver(Driver):
         return result
 
     def commit(self):
-        ''' commit to db '''
-        self.db.commit()
+        ''' commit '''
+        self.open_db().commit()
+        self.close_db()
 
     def rollback(self):
-        ''' rollback db '''
-        self.db.rollback()
+        ''' rollback '''
+        self.open_db().rollback()
+
+    def open_db(self):
+        ''' open db connection '''
+        if self.db is None:
+            self.db = pymysql.connect(host=self.host,
+                                      user=self.user, password=self.password,
+                                      database=self.database, port=self.port)
+        return self.db
+
+    def close_db(self):
+        ''' close db connection '''
+        if self.db is not None:
+            try:
+                self.db.close()
+                self.db = None
+            except Exception as err:
+                logging.info("close fail: %s", err)
 
     def get_a_row(self, table: str):
         ''' get one row '''
@@ -193,7 +214,7 @@ class MySQLDriver(Driver):
         result = None
         sql = "SELECT * FROM `%s` limit 0, 1" % (table)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = cursor.fetchall()
                 if len(results) > 0:
@@ -217,10 +238,10 @@ class MySQLDriver(Driver):
 
     def total(self, table: str, sql_where: str) -> str:
         ''' total '''
-        sql = "SELECT count(0) FROM `%s`.`%s` WHERE %s" % (self.db_name, table, sql_where)
+        sql = "SELECT count(0) FROM `%s`.`%s` WHERE %s" % (
+            self.db_name, table, sql_where)
         return sql
 
-    
     def get_dir_file_list(self, db_results):
         result = []
         if db_results is None or len(db_results) <= 0:
@@ -253,7 +274,7 @@ class MySQLDriver(Driver):
         sql = "ALTER TABLE `%s` auto_increment = 1" % table
 
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 result = cursor.execute(sql)
                 self.commit()
         except Exception as err:
@@ -282,7 +303,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             sql += " LIMIT 0,%d" % (limit)
 
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = cursor.fetchall()
                 result = [r[0] for r in results]
@@ -306,7 +327,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         ok = False
         sql = "DELETE FROM `%s` WHERE `id`=%s" % (table, id)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 r = cursor.execute(sql)
                 ok = r > 0
         except Exception as err:
@@ -336,13 +357,13 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = "INSERT INTO `%s`.file (`id`,`dir`,`attribute`,`name`,`ext`,`delete`,`createtime`,`modtime`) \
             VALUES (%s,%s,NULL,%s,%s,0,'%s','%s');" % (self.db_name, id, file.dir, name, ext, time_now, time_now)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 current_id = cursor.lastrowid
         except Exception as err:
             logging.warning(sql)
             ok = False
-            self.db.rollback()
+            self.rollback()
             raise err
 
         return current_id, ok
@@ -369,13 +390,13 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = "INSERT INTO `%s`.dir (`id`,`parent`,`name`,`delete`,`createtime`,`modtime`) VALUES \
             (%s,%s,%s,0,'%s','%s');" % (self.db_name, id, parent, name, time_now, time_now)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 current_id = int(cursor.lastrowid)
                 ok = True
         except Exception as err:
             logging.warning(sql)
-            self.db.rollback()
+            self.rollback()
             raise err
         return current_id, ok
 
@@ -400,16 +421,40 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = "INSERT INTO `%s`.attribute (`id`,`file`,`type`,`size`,`crc32`,`sha256`,`ext`,`width`,`height`,`color`, \
             `ahash`,`phash`,`dhash`,`desc`,`encrypt`,`key`) VALUES (%s,%s,%d,%d,'%s','%s',%s,%d,%d,'%s',%d,%d,%d, \
             %s,%s,%s);" % (self.db_name, id, attr.file, attr.type, attr.size, attr.crc32, attr.sha256, safe(attr.ext),
-                             attr.width, attr.height, attr.color, attr.ahash, attr.phash, attr.dhash, safe(attr.desc),
-                             encrypt, key)
+                           attr.width, attr.height, attr.color, attr.ahash, attr.phash, attr.dhash, safe(
+                               attr.desc),
+                           encrypt, key)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 current_id = cursor.lastrowid
                 ok = True
         except Exception as err:
             logging.warning(sql)
-            self.db.rollback()
+            self.rollback()
+            raise err
+        return current_id, ok
+
+    def add_attribute_tag(self, attribute_tag: AttributeTag):
+        ''' add new attribute tag to database '''
+        current_id = "NULL"
+        ok = False
+
+        if attribute_tag.id is None:
+            id = "NULL"
+        else:
+            id = "'%s'" % attribute_tag.id
+
+        sql = "INSERT INTO `%s`.attribute_tag (`id`,`tag_id`,`target`,`type`,`delete`) VALUES (%s,%d,%d,%d,0);" % (
+            self.db_name, id, attribute_tag.tag_id, attribute_tag.target, attribute_tag.type)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                current_id = cursor.lastrowid
+                ok = True
+        except Exception as err:
+            logging.warning(sql)
+            self.rollback()
             raise err
         return current_id, ok
 
@@ -423,16 +468,16 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         else:
             id = "'%s'" % tag.id
 
-        sql = "INSERT INTO `%s`.tag (`id`,`target`,`type`,`key`,`value`,`delete`) VALUES (%s,%d,%d,%s,%s,0);" % (
-            self.db_name, id, tag.target, tag.type, safe(tag.key), safe(tag.value))
+        sql = "INSERT INTO `%s`.tag (`id`,`key`,`value`,`delete`) VALUES (%s,%s,%s,0);" % (
+            self.db_name, id, safe(tag.key), safe(tag.value))
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 current_id = cursor.lastrowid
                 ok = True
         except Exception as err:
             logging.warning(sql)
-            self.db.rollback()
+            self.rollback()
             raise err
         return current_id, ok
 
@@ -465,7 +510,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
 
         sql = self.page("file", file, sql_where)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = get_file_list(cursor.fetchall())
                 if file.do_page():
@@ -496,7 +541,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
 
         sql = "SELECT * FROM `%s`.dir WHERE %s" % (self.db_name, sql_where)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = get_dir_list(cursor.fetchall())
         except Exception as e:
@@ -524,7 +569,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = "SELECT * FROM `%s`.attribute WHERE %s" % (
             self.db_name, sql_where)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = get_attribute_list(cursor.fetchall())
         except Exception as e:
@@ -532,18 +577,43 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return results
 
-    def get_tags(self, id=None, target: int = None, type_id: int = None, key: str = None,
-                 value: str = None, delete: int = 0):
+    def get_attribute_tags(self, id=None, tag_id: int = None, target: int = None, type_id: int = None, delete: int = 0):
+        ''' list attribute tags '''
+        results = []
+
+        sql_where = ""
+        if id is not None:
+            sql_where += " and `id`=%s" % (id)
+        if tag_id is not None:
+            sql_where += " and `tag_id`=%d" % (tag_id)
+        if target is not None:
+            sql_where += " and `target`=%d" % (target)
+        if type_id is not None:
+            sql_where += " and `type`=%d" % (type_id)
+        if delete is not None:
+            sql_where += " and `delete`='%s'" % (delete)
+        sql_where = sql_where.strip().lstrip('and')
+        if sql_where == "":
+            return results
+
+        sql = "SELECT * FROM `%s`.attribute_tag WHERE %s" % (
+            self.db_name, sql_where)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = get_attribute_tag_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    def get_tags(self, id=None, key: str = None, value: str = None, delete: int = 0):
         ''' list tags '''
         results = []
 
         sql_where = ""
         if id is not None:
             sql_where += " and `id`=%s" % (id)
-        if target is not None:
-            sql_where += " and `target`=%d" % (target)
-        if type_id is not None:
-            sql_where += " and `type`=%d" % (type_id)
         if key is not None:
             sql_where += " and `key`=%s" % safe(key)
         if value is not None:
@@ -557,9 +627,37 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = "SELECT * FROM `%s`.tag WHERE %s" % (
             self.db_name, sql_where)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = get_tag_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    def union_attribute_tags(self, id=None, target: int = None, type_id: int = None, delete: int = 0):
+        ''' list union attribute tags '''
+        results = []
+
+        sql_where = ""
+        if id is not None:
+            sql_where += " and `at`.`id`=%s" % (id)
+        if target is not None:
+            sql_where += " and `at`.`target`=%d" % (target)
+        if type_id is not None:
+            sql_where += " and `at`.`type`=%d" % (type_id)
+        if delete is not None:
+            sql_where += " and `at`.`delete`='%s'" % (delete)
+        sql_where = sql_where.strip().lstrip('and')
+        if sql_where == "":
+            return results
+
+        sql = "SELECT `at`.*, `t`.`key`, `t`.`value` FROM `%s`.attribute_tag `at` INNER JOIN `%s`.tag `t` ON %s AND `at`.tag_id=`t`.id" % (
+            self.db_name, self.db_name, sql_where)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = union_attribute_tag_list(cursor.fetchall())
         except Exception as e:
             logging.warning(sql)
             raise e
@@ -570,17 +668,20 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         results = []
         count = None
 
-        sql = "SELECT 'dir', id, parent, null, `name`, null FROM dir WHERE `parent`=%d and `delete`=0" % (current)
-        sql += " UNION SELECT 'file', id, dir, attribute, `name`, ext FROM file WHERE dir=%d and `delete`=0" % (current)
+        sql = "SELECT 'dir', id, parent, null, `name`, null FROM dir WHERE `parent`=%d and `delete`=0" % (
+            current)
+        sql += " UNION SELECT 'file', id, dir, attribute, `name`, ext FROM file WHERE dir=%d and `delete`=0" % (
+            current)
         if page_no is not None and page_size is not None:
             start_id = (page_no - 1) * page_size
             sql += " LIMIT %d, %d" % (start_id, page_size)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = self.get_dir_file_list(cursor.fetchall())
 
-                sql = "SELECT count(0) FROM dir WHERE parent=%d UNION SELECT count(0) FROM file WHERE dir=%d" % (current, current)
+                sql = "SELECT count(0) FROM dir WHERE parent=%d UNION SELECT count(0) FROM file WHERE dir=%d" % (
+                    current, current)
                 cursor.execute(sql)
                 result = cursor.fetchall()
                 count = result[0][0]
@@ -611,12 +712,12 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = "UPDATE `%s`.file SET %s WHERE id=%d" % (
             self.db_name, sql_set, file.id)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 ok = True
         except Exception as e:
             logging.warning(sql)
-            self.db.rollback()
+            self.rollback()
             raise e
         return ok
 
@@ -636,12 +737,64 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = "UPDATE `%s`.dir SET %s WHERE id=%d" % (
             self.db_name, sql_set, dir_model.id)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 ok = True
         except Exception as e:
             logging.warning(sql)
-            self.db.rollback()
+            self.rollback()
+            raise e
+        return ok
+
+    def update_attribute_tag(self, attribute_tag: AttributeTag):
+        ''' update attribute tag '''
+        ok = False
+
+        sql_set = ""
+        if attribute_tag.tag_id is not None:
+            sql_set += ", `tag_id`=%d" % (attribute_tag.tag_id)
+        if attribute_tag.target is not None:
+            sql_set += ", `target`=%d" % (attribute_tag.target)
+        if attribute_tag.type is not None:
+            sql_set += ", `type`=%d" % (attribute_tag.type)
+        if attribute_tag.delete is not None:
+            sql_set += ", `delete`=%d" % (attribute_tag.delete)
+        sql_set = sql_set.lstrip(',')
+
+        sql = "UPDATE `%s`.attribute_tag SET %s WHERE id=%d" % (
+            self.db_name, sql_set, attribute_tag.id)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                ok = True
+        except Exception as e:
+            logging.warning(sql)
+            self.rollback()
+            raise e
+        return ok
+
+    def recover_attribute_tag(self, tag_id: int = None, target: int = None, type_id: int = None):
+        ''' recover attribute tag '''
+        ok = False
+
+        sql_where = ""
+        if tag_id is not None:
+            sql_where += " and `tag_id`=%d" % (tag_id)
+        if target is not None:
+            sql_where += " and `target`=%d" % (target)
+        if type_id is not None:
+            sql_where += " and `type`=%d" % (type_id)
+        sql_where = sql_where.strip().lstrip('and')
+
+        sql = "UPDATE `%s`.attribute_tag SET `delete`=0 WHERE %s" % (
+            self.db_name, sql_where)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                ok = cursor.rowcount > 0
+        except Exception as e:
+            logging.warning(sql)
+            self.rollback()
             raise e
         return ok
 
@@ -661,12 +814,12 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = "UPDATE `%s`.tag SET %s WHERE id=%d" % (
             self.db_name, sql_set, tag.id)
         try:
-            with self.db.cursor() as cursor:
+            with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 ok = True
         except Exception as e:
             logging.warning(sql)
-            self.db.rollback()
+            self.rollback()
             raise e
         return ok
 

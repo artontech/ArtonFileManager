@@ -9,21 +9,17 @@
     @close="onClose"
   >
     <a-select
-      mode="tags"
-      v-model="tag_value"
+      mode="multiple"
+      v-model="attribute_tag_ids"
       :style="{ width: '100%', height: '200px' }"
-      :defaultValue="tags"
       :dropdownMatchSelectWidth="false"
       :placeholder="$t('explorer.tag_drawer.select1_placeholder')"
       :open="show_select"
       @change="select1Change"
     >
-      <a-select-option
-        v-for="tag in tag_list"
-        :key="tag"
-        :default-value="tags"
-        >{{ tag }}</a-select-option
-      >
+      <a-select-option v-for="tag in tags" :key="tag.id" :value="tag.id">{{
+        `${tag.key}:${tag.value}`
+      }}</a-select-option>
     </a-select>
 
     <!-- Button -->
@@ -43,10 +39,9 @@ export default {
     return {
       repository: null,
       setting: null,
-      tag_list: [],
+      attribute_tags: [],
+      attribute_tag_ids: [],
       tags: [],
-      tag_target: [],
-      tag_value: [],
       show_select: null,
       mod: false,
       target: null,
@@ -67,18 +62,41 @@ export default {
       vm.show_select = null;
       vm.mod = false;
 
-      // load tags
-      vm.tags.splice(0, vm.tags.length);
-      vm.tag_target.splice(0, vm.tag_target.length);
-      vm.tag_value.splice(0, vm.tag_value.length);
+      const body = {
+        wid: vm.repository.wid,
+      };
+      const onError = () => {
+        console.log(`[Error] failed to list tag ${body.path}`);
+      };
+      vm.$http
+        .post(`http://${vm.setting.address}/tag/list`, body, options)
+        .then(
+          (resp) => {
+            vm.btn1_loading = false;
+            if (resp.body.status === "success") {
+              const tag_list = resp.body.data;
+              vm.tags.splice(0, vm.tags.length);
+              for (let i in tag_list) {
+                vm.tags.push(tag_list[i]);
+              }
+            } else {
+              onError();
+            }
+          },
+          (error) => {
+            onError();
+          }
+        );
+
+      // load tag
+      vm.attribute_tags.splice(0, vm.attribute_tags.length);
+      vm.attribute_tag_ids.splice(0, vm.attribute_tag_ids.length);
       if (target != undefined) {
         vm.target = target.type == "dir" ? target.id : target.attribute;
         vm.type = target.type;
         for (let i in target.tags) {
-          const tag = `${target.tags[i].key}:${target.tags[i].value}`;
-          vm.tags.push(tag);
-          vm.tag_target.push(target.tags[i]);
-          vm.tag_value.push(tag);
+          vm.attribute_tags.push(target.tags[i]);
+          vm.attribute_tag_ids.push(target.tags[i].tag_id);
         }
       }
     },
@@ -86,98 +104,91 @@ export default {
     onClose() {
       const vm = this;
       vm.show_select = false;
-      vm.tags.splice(0, vm.tags.length);
+      vm.attribute_tags.splice(0, vm.attribute_tags.length);
       vm.$emit("on-close", vm.mod);
     },
-    tagDiff(arr1, arr2) {
-      const result = { tag: null, key: null, value: null, i: null };
+    arrDiff(arr1, arr2) {
       for (let i in arr1) {
-        let tag = arr1[i];
-        if (arr2.indexOf(tag) < 0) {
-          let sp = tag.split(":");
-          result.tag = tag;
-          result.key = sp[0];
-          result.value = sp[1];
-          result.i = i;
-          break;
+        if (arr2.indexOf(arr1[i]) < 0) {
+          return i;
         }
       }
-      return result;
+      return null;
     },
     select1Change(value) {
       const vm = this;
-      if (value.length > vm.tags.length) {
+
+      let tag_ids = [];
+      for (let i in vm.attribute_tags)
+        tag_ids.push(vm.attribute_tags[i].tag_id);
+
+      if (value.length > vm.attribute_tags.length) {
         // add
-        const diff = vm.tagDiff(value, vm.tags);
-        vm.addTag(diff.key, diff.value);
-      } else if (value.length < vm.tags.length) {
+        const diff_index = vm.arrDiff(value, tag_ids);
+        if (diff_index) vm.addAttributeTag(value[diff_index]);
+      } else if (value.length < vm.attribute_tags.length) {
         // delete
-        const diff = vm.tagDiff(vm.tags, value);
-        vm.updateTag(diff.i, null, null, 1);
+        const diff_index = vm.arrDiff(tag_ids, value);
+        if (diff_index) vm.updateAttributeTag(diff_index, 1);
       } else {
         // update
-        const diff1 = vm.tagDiff(vm.tags, value);
-        const diff2 = vm.tagDiff(value, vm.tags);
+        console.log("update select")
       }
     },
     btn1Click(e) {
       const vm = this;
       vm.onClose();
     },
-    addTag(key, value) {
+    addAttributeTag(tag_id) {
       const vm = this;
       vm.mod = true; // Add mod flag
 
       const body = {
         wid: vm.repository.wid,
+        tag_id,
         target: vm.target,
         type: vm.type,
-        key,
-        value,
       };
       const onError = () => {
         console.log(`[Error] failed to update tag ${body.path}`);
       };
-      vm.$http.post(`http://${vm.setting.address}/tag/add`, body, options).then(
-        (resp) => {
-          vm.btn1_loading = false;
-          if (resp.body.status === "success") {
-            // vm.onClose();
-            const target = resp.body.data;
-            const tag = `${target.key}:${target.value}`;
-            vm.tags.push(tag);
-            vm.tag_target.push(target);
-          } else {
+      vm.$http
+        .post(`http://${vm.setting.address}/attributetag/add`, body, options)
+        .then(
+          (resp) => {
+            vm.btn1_loading = false;
+            if (resp.body.status === "success") {
+              // vm.onClose();
+              const target = resp.body.data;
+              vm.attribute_tags.push(target);
+            } else {
+              onError();
+            }
+          },
+          (error) => {
             onError();
           }
-        },
-        (error) => {
-          onError();
-        }
-      );
+        );
     },
-    updateTag(id, key, value, delete_id) {
+    updateAttributeTag(index, delete_id) {
       const vm = this;
       vm.mod = true; // Add mod flag
 
       const body = {
         wid: vm.repository.wid,
-        id: vm.tag_target[id].id,
-        key,
-        value,
+        id: vm.attribute_tags[index].id,
         delete: delete_id,
       };
       const onError = () => {
         console.log(`[Error] failed to update tag ${body.path}`);
       };
       vm.$http
-        .post(`http://${vm.setting.address}/tag/update`, body, options)
+        .post(`http://${vm.setting.address}/attributetag/update`, body, options)
         .then(
           (resp) => {
             vm.btn1_loading = false;
             if (resp.body.status === "success") {
-              vm.tags.splice(id, 1);
-              vm.tag_target.splice(id, 1);
+              vm.attribute_tags.splice(index, 1);
             } else {
               onError();
             }
