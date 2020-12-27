@@ -1,0 +1,105 @@
+<template>
+    <a-layout-sider
+        v-model="collapsed"
+        class="menu"
+        width="256"
+        breakpoint="lg"
+        @collapse="onCollapse"
+        @breakpoint="onBreakpoint"
+        collapsible
+    >
+        <a-menu
+            :default-selected-keys="[]"
+            :default-open-keys="['sub1']"
+            :selectedKeys="[selected]"
+            mode="inline"
+            theme="dark"
+            :inline-collapsed="collapsed"
+        >
+            <a-menu-item key="Setting" v-on:click="go">
+                <a-icon type="setting" />
+                <span>{{$t('menu.setting')}}</span>
+            </a-menu-item>
+            <a-sub-menu key="sub1">
+                <span slot="title">
+                    <a-icon type="profile" />
+                    <span>{{$t('menu.manager')}}</span>
+                </span>
+                <a-menu-item key="Repository" v-on:click="go">
+                    <a-icon type="database" />
+                    <span>{{$t('menu.repository')}}</span>
+                </a-menu-item>
+                <a-menu-item key="Explorer" v-on:click="go">
+                    <a-icon type="file" />
+                    <span>{{$t('menu.explorer')}}</span>
+                </a-menu-item>
+            </a-sub-menu>
+            <a-sub-menu key="sub2">
+                <span slot="title">
+                    <a-icon type="appstore" />
+                    <span>Navigation Two</span>
+                </span>
+                <a-sub-menu key="sub3" title="Submenu">
+                    <a-menu-item key="11" v-on:click="go">Option 11</a-menu-item>
+                    <a-menu-item key="12">Option 12</a-menu-item>
+                </a-sub-menu>
+            </a-sub-menu>
+        </a-menu>
+    </a-layout-sider>
+</template>
+
+<script>
+import routes from "@/router/routes.js";
+
+export default {
+    name: "Menu",
+    props: {},
+    data() {
+        return {
+            collapsed: false,
+            selected: ""
+        };
+    },
+    created() {
+        if (this.$route.name) this.selected = this.$route.name;
+        this.$router.beforeResolve((to, from, next) => {
+            this.selected = to.name;
+            next();
+        });
+    },
+    beforeUpdate() {},
+    methods: {
+        go(item) {
+            routes.forEach(element => {
+                if (element.name == item.key) {
+                    this.$router.push(element.path);
+                }
+            });
+        },
+        onCollapse(collapsed, type) {
+        },
+        onBreakpoint(broken) {
+        }
+    }
+};
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+.menu {
+    width: 256px;
+    height: 100vh;
+    background: rgb(0, 12, 23);
+}
+
+.menu.collapsed {
+    width: fit-content;
+}
+
+span > a {
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.65);
+    height: 40px;
+    line-height: 40px;
+}
+</style>

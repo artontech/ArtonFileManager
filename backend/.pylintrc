@@ -1,0 +1,30 @@
+[MASTER]
+init-hook='import sys; sys.path.append("E:\\Project\\ArtonFileManager")'
+ignore=.git,tools, etc
+
+[MESSAGES CONTROL]
+disable=attribute-defined-outside-init,missing-docstring,line-too-long
+
+[BASIC]
+# Variable names can be 1 to 31 characters long, with lowercase and underscores
+variable-rgx=[a-z_][a-z0-9_]{0,30}$
+
+# Argument names can be 2 to 31 characters long, with lowercase and underscores
+argument-rgx=[a-z_][a-z0-9_]{1,30}$
+
+# Method names should be at least 3 characters long
+# and be lowecased with underscores
+method-rgx=([a-z_][a-z0-9_]{2,}|setUp|tearDown)$
+
+# Module names matching vulcan-* are ok (files in bin/)
+# module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+)|(vulcan-[a-z0-9_-]+))$
+module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+)|([a-z0-9_-]+))$
+
+
+
+# Don't require docstrings on tests.
+no-docstring-rgx=((__.*__)|([tT]est.*)|setUp|tearDown)$
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=79
