@@ -419,11 +419,11 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             key = "'%s'" % attr.key
 
         sql = "INSERT INTO `%s`.attribute (`id`,`file`,`type`,`size`,`crc32`,`sha256`,`ext`,`width`,`height`,`color`, \
-            `ahash`,`phash`,`dhash`,`desc`,`encrypt`,`key`) VALUES (%s,%s,%d,%d,'%s','%s',%s,%d,%d,'%s',%d,%d,%d, \
-            %s,%s,%s);" % (self.db_name, id, attr.file, attr.type, attr.size, attr.crc32, attr.sha256, safe(attr.ext),
+            `ahash`,`phash`,`dhash`,`desc`,`encrypt`,`key`,`delete`) VALUES (%s,%s,%d,%d,'%s','%s',%s,%d,%d,'%s',%d,%d,%d, \
+            %s,%s,%s,%d);" % (self.db_name, id, attr.file, attr.type, attr.size, attr.crc32, attr.sha256, safe(attr.ext),
                            attr.width, attr.height, attr.color, attr.ahash, attr.phash, attr.dhash, safe(
                                attr.desc),
-                           encrypt, key)
+                           encrypt, key, attr.delete)
         try:
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
@@ -549,8 +549,8 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return results
 
-    def get_attrs(self, id=None, size: int = None, crc32: int = None, sha256: str = None):
-        ''' list files '''
+    def get_attrs(self, id=None, size: int = None, crc32: int = None, sha256: str = None, delete: int = 0):
+        ''' list attributes '''
         results = []
 
         sql_where = ""
@@ -562,6 +562,8 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             sql_where += " and `crc32`=%d" % (crc32)
         if sha256 is not None:
             sql_where += " and `sha256`='%s'" % (sha256)
+        if delete is not None:
+            sql_where += " and `delete`=%d" % (delete)
         sql_where = sql_where.strip().lstrip('and')
         if sql_where == "":
             return results
@@ -591,7 +593,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         if type_id is not None:
             sql_where += " and `type`=%d" % (type_id)
         if delete is not None:
-            sql_where += " and `delete`='%s'" % (delete)
+            sql_where += " and `delete`=%d" % (delete)
         sql_where = sql_where.strip().lstrip('and')
         if sql_where == "":
             return results
@@ -619,7 +621,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         if value is not None:
             sql_where += " and `value`=%s" % safe(value)
         if delete is not None:
-            sql_where += " and `delete`='%s'" % (delete)
+            sql_where += " and `delete`=%d" % (delete)
         sql_where = sql_where.strip().lstrip('and')
         if sql_where == "":
             return results
@@ -647,7 +649,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         if type_id is not None:
             sql_where += " and `at`.`type`=%d" % (type_id)
         if delete is not None:
-            sql_where += " and `at`.`delete`='%s'" % (delete)
+            sql_where += " and `at`.`delete`=%d" % (delete)
         sql_where = sql_where.strip().lstrip('and')
         if sql_where == "":
             return results
@@ -680,7 +682,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
                 cursor.execute(sql)
                 results = self.get_dir_file_list(cursor.fetchall())
 
-                sql = "SELECT count(0) FROM dir WHERE parent=%d UNION SELECT count(0) FROM file WHERE dir=%d" % (
+                sql = "SELECT count(0) FROM dir WHERE parent=%d and `delete`=0 UNION SELECT count(0) FROM file WHERE dir=%d and `delete`=0" % (
                     current, current)
                 cursor.execute(sql)
                 result = cursor.fetchall()

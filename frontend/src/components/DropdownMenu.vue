@@ -70,8 +70,7 @@ export default {
       const vm = this;
       vm.$emit(
         "detail",
-        vm.item.type == "file" ? vm.item.attribute : vm.item.id,
-        vm.item.type,
+        vm.item,
         event
       );
     },

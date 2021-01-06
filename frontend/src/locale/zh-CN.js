@@ -64,9 +64,10 @@ const menu = {
   repository: "管理仓库",
   explorer: "浏览文件",
   dropdown_menu: {
-    label1_caption: "占用空间",
-    label2_caption: "文件数",
-    label3_caption: "文件夹数",
+    label1_caption: "编号",
+    label2_caption: "占用空间",
+    label3_caption: "文件数",
+    label4_caption: "文件夹数",
   },
 };
 

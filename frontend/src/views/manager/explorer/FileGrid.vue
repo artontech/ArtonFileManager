@@ -91,8 +91,8 @@ export default {
     del(target, event) {
       this.$emit("del", target, event);
     },
-    detail(target, type, event) {
-      this.$emit("detail", target, type, event);
+    detail(target, event) {
+      this.$emit("detail", target, event);
     },
     download(target, event) {
       this.$emit("download", target, event);

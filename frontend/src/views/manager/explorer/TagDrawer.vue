@@ -2,7 +2,7 @@
   <a-drawer
     placement="right"
     :closable="true"
-    :maskClosable="false"
+    :maskClosable="true"
     :title="$t('explorer.tag_drawer.title')"
     :visible="visible"
     :after-visible-change="afterVisibleChange"
@@ -21,6 +21,9 @@
         `${tag.key}:${tag.value}`
       }}</a-select-option>
     </a-select>
+
+    <img v-if="target && target.thumb_done" class="image" :alt="target.fullname" :src="target.thumb" @click="show_select=!show_select;" />
+    <img v-else class="image" alt="icon" :src="target ? target.icon : null" @click="show_select=!show_select;" />
 
     <!-- Button -->
     <div id="btn-wrapper">
@@ -45,6 +48,7 @@ export default {
       show_select: null,
       mod: false,
       target: null,
+      target_id: null,
       type: null,
     };
   },
@@ -61,12 +65,14 @@ export default {
       const vm = this;
       vm.show_select = null;
       vm.mod = false;
+      vm.target = target;
 
+      // load tag
       const body = {
         wid: vm.repository.wid,
       };
       const onError = () => {
-        console.log(`[Error] failed to list tag ${body.path}`);
+        console.log(`[Error] failed to init ${body.path}`);
       };
       vm.$http
         .post(`http://${vm.setting.address}/tag/list`, body, options)
@@ -88,11 +94,11 @@ export default {
           }
         );
 
-      // load tag
+      // load attribute tag
       vm.attribute_tags.splice(0, vm.attribute_tags.length);
       vm.attribute_tag_ids.splice(0, vm.attribute_tag_ids.length);
       if (target != undefined) {
-        vm.target = target.type == "dir" ? target.id : target.attribute;
+        vm.target_id = target.type == "dir" ? target.id : target.attribute;
         vm.type = target.type;
         for (let i in target.tags) {
           vm.attribute_tags.push(target.tags[i]);
@@ -134,6 +140,7 @@ export default {
         // update
         console.log("update select")
       }
+      vm.show_select = true;
     },
     btn1Click(e) {
       const vm = this;
@@ -146,7 +153,7 @@ export default {
       const body = {
         wid: vm.repository.wid,
         tag_id,
-        target: vm.target,
+        target: vm.target_id,
         type: vm.type,
       };
       const onError = () => {
@@ -159,8 +166,8 @@ export default {
             vm.btn1_loading = false;
             if (resp.body.status === "success") {
               // vm.onClose();
-              const target = resp.body.data;
-              vm.attribute_tags.push(target);
+              const result = resp.body.data;
+              vm.attribute_tags.push(result);
             } else {
               onError();
             }
@@ -205,5 +212,11 @@ export default {
 <style>
 .ant-select-selection {
   height: 100%;
+}
+
+.image {
+  margin-top: 25px;
+  max-height: 500px;
+  max-width: 435px;
 }
 </style>

@@ -18,6 +18,7 @@ class Attribute(DefaultModel):
     desc = ""
     encrypt = ""
     key = ""
+    delete = 0
 
 def get_attribute(row) -> Attribute:
     obj = Attribute()
@@ -37,6 +38,7 @@ def get_attribute(row) -> Attribute:
     obj.desc = row[13]
     obj.encrypt = row[14]
     obj.key = row[15]
+    obj.delete = row[16]
     return obj
 
 def get_attribute_list(db_results):

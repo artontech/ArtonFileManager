@@ -64,9 +64,10 @@ const menu = {
   repository: "Repository",
   explorer: "Explorer",
   dropdown_menu: {
-    label1_caption: "Space",
-    label2_caption: "Files",
-    label3_caption: "Directories",
+    label1_caption: "Id",
+    label2_caption: "Space",
+    label3_caption: "Files",
+    label4_caption: "Directories",
   },
 };
 

@@ -115,7 +115,7 @@
         :pageSize="page_size"
         :pageSizeOptions="['5', '15', '30', '60']"
         :total="total"
-        :show-total="total => `Total ${total}`"
+        :show-total="(total) => `Total ${total}`"
         @change="page1Change"
         @showSizeChange="page1Change"
       />
@@ -133,7 +133,7 @@ const breadcrumb_home = {
   type: "breadcrumb",
   icon: "home",
   breadcrumbName: "home",
-  children: []
+  children: [],
 };
 
 export default {
@@ -153,7 +153,7 @@ export default {
       checked: null,
       page_no: 1,
       page_size: 15,
-      total: 0
+      total: 0,
     };
   },
   components: {
@@ -162,7 +162,7 @@ export default {
     ImportDrawer: () => import("./ImportDrawer"),
     TagDrawer: () => import("./TagDrawer"),
     FileGrid: () => import("./FileGrid"),
-    FileList: () => import("./FileList")
+    FileList: () => import("./FileList"),
   },
   beforeMount() {
     const vm = this;
@@ -177,7 +177,7 @@ export default {
         current: 0,
         breadcrumb_flat: [breadcrumb_home],
         breadcrumb: [breadcrumb_home],
-        file_view: "grid"
+        file_view: "grid",
       };
       vm.$store.commit("updateExplorerNocache", nocache);
     }
@@ -227,7 +227,7 @@ export default {
       let types = [],
         ids = [];
 
-      vm.checked.forEach(s => {
+      vm.checked.forEach((s) => {
         let sp = s.split("-");
         types.push(sp[0]);
         ids.push(sp[1]);
@@ -246,7 +246,7 @@ export default {
           wid: vm.repository.wid,
           type: target.type,
           from: Number(target.id),
-          to: Number(selected_keys[0])
+          to: Number(selected_keys[0]),
         };
         const onError = () => {
           console.log(
@@ -256,7 +256,7 @@ export default {
         vm.$http
           .post(`http://${vm.setting.address}/dir/moveto`, body, options)
           .then(
-            resp => {
+            (resp) => {
               if (resp.body.status === "success") {
                 vm.clear();
                 vm.list();
@@ -264,7 +264,7 @@ export default {
                 onError();
               }
             },
-            error => {
+            (error) => {
               onError();
             }
           );
@@ -292,12 +292,12 @@ export default {
         vm.$i18n.t("explorer.dir_input.title"),
         vm.$i18n.t("explorer.dir_input.placeholder"),
         null,
-        value => {
+        (value) => {
           // Sending request
           const body = {
             wid: vm.repository.wid,
             current: vm.current,
-            name: value
+            name: value,
           };
           const onError = () => {
             console.log(`[Error] failed to create dir ${value}`);
@@ -305,14 +305,14 @@ export default {
           vm.$http
             .post(`http://${vm.setting.address}/dir/create`, body, options)
             .then(
-              resp => {
+              (resp) => {
                 if (resp.body.status === "success") {
                   vm.list();
                 } else {
                   onError();
                 }
               },
-              error => {
+              (error) => {
                 onError();
               }
             );
@@ -334,7 +334,7 @@ export default {
 
       // update vuex
       vm.$store.commit("updateExplorerNocache", {
-        file_view: vm.file_view
+        file_view: vm.file_view,
       });
     },
     /* * * * * * * * End: Trigger * * * * * * * */
@@ -351,7 +351,7 @@ export default {
       vm.$http
         .get(`http://${vm.setting.address}${obj.thumb}`, body, options)
         .then(
-          resp => {
+          (resp) => {
             const data = resp.body?.data;
             if (data && resp.body?.status === "success") {
               obj.thumb_done = true;
@@ -362,7 +362,7 @@ export default {
               onError();
             }
           },
-          error => {
+          (error) => {
             onError();
           }
         );
@@ -378,7 +378,7 @@ export default {
         dir: true,
         file: true,
         page_no: vm.page_no,
-        page_size: vm.page_size
+        page_size: vm.page_size,
       };
       const onError = () => {
         console.log(`[Error] failed to list dir ${body.current}`);
@@ -386,11 +386,11 @@ export default {
       vm.$http
         .post(`http://${vm.setting.address}/dir/list`, body, options)
         .then(
-          resp => {
+          (resp) => {
             const data = resp.body?.data;
             if (data && resp.body?.status === "success") {
               vm.data.splice(0, vm.data.length);
-              data.list?.forEach(obj => {
+              data.list?.forEach((obj) => {
                 if (obj.delete) return;
                 obj.icon = `http://${vm.setting.address}${obj.icon}`;
 
@@ -426,7 +426,7 @@ export default {
               onError();
             }
           },
-          error => {
+          (error) => {
             onError();
           }
         );
@@ -441,7 +441,7 @@ export default {
         target: ids,
         name,
         ext,
-        delete: del
+        delete: del,
       };
       const onError = () => {
         console.log(`[Error] failed to delete ${ids}`);
@@ -449,7 +449,7 @@ export default {
       vm.$http
         .post(`http://${vm.setting.address}/dir/update`, body, options)
         .then(
-          resp => {
+          (resp) => {
             if (resp.body.status === "success") {
               vm.list();
               if (onSuccess) onSuccess();
@@ -457,7 +457,7 @@ export default {
               onError();
             }
           },
-          error => {
+          (error) => {
             onError();
           }
         );
@@ -487,14 +487,15 @@ export default {
         vm.clear();
       });
     },
-    detail(target, type, event) {
-      const vm = this;
+    detail(item, event) {
+      const vm = this,
+        target = item.type == "file" ? item.attribute : item.id;
 
       // Sending request
       const body = {
         wid: vm.repository.wid,
         target,
-        type
+        type: item.type,
       };
       const onError = () => {
         console.log(`[Error] failed to get detail ${target}`);
@@ -502,41 +503,53 @@ export default {
       vm.$http
         .post(`http://${vm.setting.address}/dir/detail`, body, options)
         .then(
-          resp => {
+          (resp) => {
             const data = resp.body?.data;
             if (data && resp.body?.status === "success") {
               const size = vm.formatSize(data.size);
               Modal.info({
                 content:
-                  type == "file" ? (
-                    <p>
-                      {`${vm.$i18n.t(
-                        "menu.dropdown_menu.label1_caption"
-                      )}: ${size} (${data.size})`}
-                    </p>
+                  item.type == "file" ? (
+                    <div>
+                      <p>
+                        {`${vm.$i18n.t(
+                          "menu.dropdown_menu.label1_caption"
+                        )}: ${item.id}`}
+                      </p>
+                      <p>
+                        {`${vm.$i18n.t(
+                          "menu.dropdown_menu.label2_caption"
+                        )}: ${size} (${data.size})`}
+                      </p>
+                    </div>
                   ) : (
                     <div>
                       <p>
                         {`${vm.$i18n.t(
                           "menu.dropdown_menu.label1_caption"
+                        )}: ${item.id}`}
+                      </p>
+                      <p>
+                        {`${vm.$i18n.t(
+                          "menu.dropdown_menu.label2_caption"
                         )}: ${size} (${data.size})`}
                       </p>
                       <p>
-                        {`${vm.$i18n.t("menu.dropdown_menu.label2_caption")}: ${
+                        {`${vm.$i18n.t("menu.dropdown_menu.label3_caption")}: ${
                           data.file_count
                         }`}
                       </p>
                       <p>
-                        {`${vm.$i18n.t("menu.dropdown_menu.label3_caption")}: ${
+                        {`${vm.$i18n.t("menu.dropdown_menu.label4_caption")}: ${
                           data.dir_count
                         }`}
                       </p>
                     </div>
-                  )
+                  ),
               });
             }
           },
-          error => {
+          (error) => {
             onError();
           }
         );
@@ -558,7 +571,7 @@ export default {
             options
           )
           .then(
-            resp => {
+            (resp) => {
               const data = resp.body?.data;
               if (data && resp.body?.status === "success") {
                 const url = `http://${vm.setting.address}${data.src}`;
@@ -567,7 +580,7 @@ export default {
                 onError();
               }
             },
-            error => {
+            (error) => {
               onError();
             }
           );
@@ -576,17 +589,17 @@ export default {
           vm.$i18n.t("explorer.export.title"),
           vm.$i18n.t("explorer.export.placeholder"),
           "D:\\tmp\\export",
-          value => {
+          (value) => {
             const body = {
               wid: vm.repository.wid,
               current: target.id,
               name: target.name,
-              path: value
+              path: value,
             };
             vm.$http
               .post(`http://${vm.setting.address}/dir/export`, body, options)
               .then(
-                resp => {
+                (resp) => {
                   const data = resp.body?.data;
                   if (data && resp.body?.status === "success") {
                     console.log("Export done");
@@ -594,7 +607,7 @@ export default {
                     onError();
                   }
                 },
-                error => {
+                (error) => {
                   onError();
                 }
               );
@@ -645,7 +658,7 @@ export default {
             vm.breadcrumb_flat.push({
               id: obj.id,
               type: "breadcrumb",
-              breadcrumbName: obj.name
+              breadcrumbName: obj.name,
             });
           }
         }
@@ -672,8 +685,11 @@ export default {
         vm.$store.commit("updateExplorerNocache", {
           current: vm.current,
           breadcrumb_flat: vm.breadcrumb_flat,
-          breadcrumb: vm.breadcrumb
+          breadcrumb: vm.breadcrumb,
         });
+      } else if (target.type == "file") {
+        // open tag drawer
+        vm.addTag(target);
       }
     },
     moveto(target, e) {
@@ -687,15 +703,15 @@ export default {
         vm.$i18n.t("explorer.rename.title"),
         vm.$i18n.t("explorer.rename.placeholder"),
         target.name,
-        value => {
+        (value) => {
           vm.update(target.type, target.id, value, null, null, () => {
             vm.list();
           });
         }
       );
-    }
+    },
     /* * * * * * * * End: File viewer * * * * * * * */
-  }
+  },
 };
 </script>
 
