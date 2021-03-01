@@ -1,9 +1,9 @@
 [MASTER]
-init-hook='import sys; sys.path.append("E:\\Project\\ArtonFileManager")'
+init-hook=''
 ignore=.git,tools, etc
 
 [MESSAGES CONTROL]
-disable=attribute-defined-outside-init,missing-docstring,line-too-long
+disable=attribute-defined-outside-init,missing-docstring,line-too-long,import-error,broad-except
 
 [BASIC]
 # Variable names can be 1 to 31 characters long, with lowercase and underscores

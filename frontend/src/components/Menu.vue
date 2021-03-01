@@ -10,11 +10,12 @@
     >
         <a-menu
             :default-selected-keys="[]"
-            :default-open-keys="['sub1']"
+            :default-open-keys="['sub1', 'sub2', 'sub3']"
             :selectedKeys="[selected]"
             mode="inline"
             theme="dark"
             :inline-collapsed="collapsed"
+            @openChange="menu1Change"
         >
             <a-menu-item key="Setting" v-on:click="go">
                 <a-icon type="setting" />
@@ -36,12 +37,22 @@
             </a-sub-menu>
             <a-sub-menu key="sub2">
                 <span slot="title">
-                    <a-icon type="appstore" />
-                    <span>Navigation Two</span>
+                    <a-icon type="cloud" />
+                    <span>{{$t('menu.netdisk')}}</span>
                 </span>
-                <a-sub-menu key="sub3" title="Submenu">
-                    <a-menu-item key="11" v-on:click="go">Option 11</a-menu-item>
-                    <a-menu-item key="12">Option 12</a-menu-item>
+                <a-sub-menu key="sub3">
+                    <span slot="title">
+                        <a-icon type="cloud-upload" />
+                        <span>{{$t('menu.baidunetdisk')}}</span>
+                    </span>
+                    <a-menu-item key="BaiduManager" v-on:click="go">
+                        <a-icon type="cloud-server" />
+                        <span>{{$t('menu.baidumanager')}}</span>
+                    </a-menu-item>
+                    <a-menu-item key="BaiduSync" v-on:click="go">
+                        <a-icon type="cloud-sync" />
+                        <span>{{$t('menu.baidusync')}}</span>
+                    </a-menu-item>
                 </a-sub-menu>
             </a-sub-menu>
         </a-menu>
@@ -49,15 +60,13 @@
 </template>
 
 <script>
-import routes from "@/router/routes.js";
-
 export default {
     name: "Menu",
     props: {},
     data() {
         return {
             collapsed: false,
-            selected: ""
+            selected: "",
         };
     },
     created() {
@@ -70,15 +79,13 @@ export default {
     beforeUpdate() {},
     methods: {
         go(item) {
-            routes.forEach(element => {
-                if (element.name == item.key) {
-                    this.$router.push(element.path);
-                }
-            });
+            this.$router.go(item.key);
         },
         onCollapse(collapsed, type) {
         },
         onBreakpoint(broken) {
+        },
+        menu1Change() {
         }
     }
 };

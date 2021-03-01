@@ -87,7 +87,7 @@ class Update(DefaultHandler):
     def post(self):
         ''' post '''
         wid = self.get_arg("wid")
-        id = int(self.get_arg("id"))
+        item_id = int(self.get_arg("id"))
         delete = self.get_arg("delete")
 
         # get workspace first
@@ -98,7 +98,7 @@ class Update(DefaultHandler):
 
         # delete
         if not USE_LOGIC_DELETE and delete == 1:
-            ok = space.driver.delete("tag", id)
+            ok = space.driver.delete("tag", item_id)
             if not ok:
                 self.write_json(err="db")
                 return

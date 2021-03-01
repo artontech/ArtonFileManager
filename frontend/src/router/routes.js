@@ -19,6 +19,16 @@ const routes = [
     name: "Repository",
     component: () => import("../views/manager/repository/Repository.vue"),
   },
+  {
+    path: "/baidumanager",
+    name: "BaiduManager",
+    component: () => import("../views/netdisk/baidunetdisk/BaiduManager.vue"),
+  },
+  {
+    path: "/baidusync",
+    name: "BaiduSync",
+    component: () => import("../views/netdisk/baidunetdisk/BaiduSync.vue"),
+  },
 ];
 
 export default routes;

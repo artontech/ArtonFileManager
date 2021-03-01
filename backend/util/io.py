@@ -106,6 +106,10 @@ def get_sha_256(f: bytes):
     return hashlib.sha256(f).hexdigest()
 
 
+def get_md5(f: bytes):
+    ''' MD5 '''
+    return hashlib.md5(f).hexdigest()
+
 def get_crc_32(f: bytes):
     ''' CRC-32 '''
     return zlib.crc32(f)
@@ -151,7 +155,7 @@ def decrypt_file_to(path: str, key: str, dst: str):
     key_bytes = decode_key(key)
 
     with open(path, "rb") as file_in:
-        nonce, tag, ciphertext = [ file_in.read(x) for x in (16, 16, -1) ]
+        nonce, tag, ciphertext = [file_in.read(x) for x in (16, 16, -1)]
 
     cipher = AES.new(key_bytes, AES.MODE_EAX, nonce)
     data = cipher.decrypt_and_verify(ciphertext, tag)

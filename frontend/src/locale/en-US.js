@@ -39,8 +39,7 @@ const explorer = {
     title: "Edit tag",
     select1_placeholder: "select or input your tag",
   },
-  file_list: {
-  },
+  file_list: {},
   dir_input: {
     title: "Input directory name",
     placeholder: "Directory name",
@@ -63,6 +62,10 @@ const menu = {
   manager: "Manager",
   repository: "Repository",
   explorer: "Explorer",
+  netdisk: "Netdisk",
+  baidunetdisk: "Baidu Netdisk",
+  baidumanager: "Baidu Manager",
+  baidusync: "Baidu Sync",
   dropdown_menu: {
     label1_caption: "Id",
     label2_caption: "Space",
@@ -90,7 +93,7 @@ const setting = {
   },
   explorer: {
     checkbox1: "Show picture preview",
-  }
+  },
 };
 
 const websocket = {
@@ -104,4 +107,19 @@ const websocket = {
   import_done: "import done",
 };
 
-export { all, explorer, menu, repository, setting, websocket };
+const baidunetdisk = {
+  baidumanager: {
+    label1_caption: "Connect",
+    btn1_caption: "Login",
+  },
+  baidusync: {
+    btn1_caption: "Sync",
+    label1_caption: "Progress",
+    tooltip1_caption: "check progress",
+    progress1_caption: "check",
+    tooltip2_caption: "upload progress",
+    progress2_caption: "upload",
+  },
+};
+
+export { all, explorer, menu, repository, setting, websocket, baidunetdisk };

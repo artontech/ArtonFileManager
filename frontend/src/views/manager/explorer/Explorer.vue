@@ -57,7 +57,7 @@
           <a-breadcrumb-item href></a-breadcrumb-item>
           <template slot="itemRender" slot-scope="{ route }">
             <a-icon v-if="route.icon != null" :type="route.icon" />&nbsp;
-            <a @click="goto(route, $event)">{{ route.breadcrumbName }}</a>
+            <a @click="goto(route, $event)">{{ route.label }}</a>
           </template>
         </a-breadcrumb>
 
@@ -132,6 +132,7 @@ const breadcrumb_home = {
   id: 0,
   type: "breadcrumb",
   icon: "home",
+  label: "home",
   breadcrumbName: "home",
   children: [],
 };
@@ -169,6 +170,11 @@ export default {
     vm.explorer = vm.$store.state.explorer;
     vm.repository = vm.$store.state.repository;
     vm.setting = vm.$store.state.setting;
+
+    if (!vm.repository.wid) {
+      vm.$router.go("Repository");
+      return;
+    }
 
     // deal with nocache items
     let nocache = vm.explorer.nocache;
@@ -369,6 +375,10 @@ export default {
     },
     list() {
       const vm = this;
+
+      if (!vm.repository.wid) {
+        return;
+      }
 
       // Sending request
       const body = {
@@ -658,7 +668,8 @@ export default {
             vm.breadcrumb_flat.push({
               id: obj.id,
               type: "breadcrumb",
-              breadcrumbName: obj.name,
+              label: obj.name,
+              breadcrumbName: obj.name + obj.id,
             });
           }
         }

@@ -39,8 +39,7 @@ const explorer = {
     title: "编辑标签",
     select1_placeholder: "选择或输入标签",
   },
-  file_list: {
-  },
+  file_list: {},
   dir_input: {
     title: "请输入文件夹名称",
     placeholder: "文件夹名称",
@@ -63,6 +62,10 @@ const menu = {
   manager: "文件资源管理器",
   repository: "管理仓库",
   explorer: "浏览文件",
+  netdisk: "网盘",
+  baidunetdisk: "百度网盘",
+  baidumanager: "网盘管理",
+  baidusync: "网盘同步",
   dropdown_menu: {
     label1_caption: "编号",
     label2_caption: "占用空间",
@@ -90,7 +93,7 @@ const setting = {
   },
   explorer: {
     checkbox1: "显示图片缩略图",
-  }
+  },
 };
 
 const websocket = {
@@ -104,4 +107,19 @@ const websocket = {
   import_done: "导入成功",
 };
 
-export { all, explorer, menu, repository, setting, websocket };
+const baidunetdisk = {
+  baidumanager: {
+    label1_caption: "连接到网盘",
+    btn1_caption: "登录",
+  },
+  baidusync: {
+    btn1_caption: "同步",
+    label1_caption: "进度",
+    tooltip1_caption: "检查进度",
+    progress1_caption: "检查",
+    tooltip2_caption: "上传进度",
+    progress2_caption: "上传",
+  },
+};
+
+export { all, explorer, menu, repository, setting, websocket, baidunetdisk };

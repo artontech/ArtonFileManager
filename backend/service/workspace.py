@@ -61,8 +61,10 @@ class WorkSpace():
                 new_list.append(w)
         self.ws_list = new_list
 
-    def send_ws(self, msg_type="none", status="fail", err="", data=None):
+    def send_ws(self, name=None, msg_type="none", status="fail", err="", data=None):
         for w in self.ws_list:
+            if name is not None and w.name != name:
+                continue
             w.write_json(msg_type, status, err, data)
 
 

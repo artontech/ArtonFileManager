@@ -20,14 +20,21 @@
 
     <!-- Progress dashboard -->
     <a-divider />
-    <b>{{$t('explorer.import_drawer.label1_caption')}}</b>
+    <b>{{ $t("explorer.import_drawer.label1_caption") }}</b>
     <a-divider />
     <a-row type="flex" justify="center">
       <a-col :span="8">
-        <a-tooltip class="tooltip-structure" :title="$t('explorer.import_drawer.tooltip1_caption')">
-          <a-progress type="dashboard" :percent="structure_percent" :status="status">
+        <a-tooltip
+          class="tooltip-structure"
+          :title="$t('explorer.import_drawer.tooltip1_caption')"
+        >
+          <a-progress
+            type="dashboard"
+            :percent="structure_percent"
+            :status="status"
+          >
             <template #format="percent">
-              <span>{{$t('explorer.import_drawer.progress1_caption')}}</span>
+              <span>{{ $t("explorer.import_drawer.progress1_caption") }}</span>
               <br />
               <span>{{ percent }}%</span>
             </template>
@@ -36,9 +43,13 @@
       </a-col>
       <a-col :span="8">
         <a-tooltip :title="$t('explorer.import_drawer.tooltip2_caption')">
-          <a-progress type="dashboard" :percent="files_percent" :status="status">
+          <a-progress
+            type="dashboard"
+            :percent="files_percent"
+            :status="status"
+          >
             <template #format="percent">
-              <span>{{$t('explorer.import_drawer.progress2_caption')}}</span>
+              <span>{{ $t("explorer.import_drawer.progress2_caption") }}</span>
               <br />
               <span>{{ percent }}%</span>
             </template>
@@ -49,12 +60,12 @@
 
     <!-- Log -->
     <a-divider />
-    <b>{{$t('explorer.import_drawer.label2_caption')}}</b>
+    <b>{{ $t("explorer.import_drawer.label2_caption") }}</b>
     <a-divider />
     <div class="logging-wrapper">
       <a-list item-layout="horizontal" size="small" :data-source="msg">
         <a-list-item slot="renderItem" slot-scope="item">
-          <span>{{item}}</span>
+          <span>{{ item }}</span>
         </a-list-item>
       </a-list>
     </div>
@@ -66,7 +77,8 @@
         :loading="btn1_loading"
         :type="btn1_type"
         @click="btn1Click"
-      >{{$t('all.import')}}</a-button>
+        >{{ $t("all.import") }}</a-button
+      >
     </div>
   </a-drawer>
 </template>
@@ -90,7 +102,7 @@ export default {
       structure_percent: 0,
       files_percent: 0,
       msg: [],
-      mod: false
+      mod: false,
     };
   },
   beforeMount() {
@@ -123,7 +135,7 @@ export default {
 
     // Websocket
     vm.websocket = new ArtonWebsocket();
-    vm.websocket.onMessage = message => {
+    vm.websocket.onMessage = (message) => {
       if (message.data) {
         const msg = JSON.parse(message.data);
         const data = msg?.data;
@@ -137,25 +149,36 @@ export default {
                   console.log(`structure progress ${data?.now}`);
                   break;
                 case "msg":
-                  if (data?.msg == "structure_done") {
-                    vm.structure_percent = 100.0;
+                  switch (data?.msg) {
+                    case "structure_done":
+                      vm.structure_percent = 100.0;
+                      break;
+                    case "import_done":
+                      vm.btn1_disabled = false;
+                      vm.btn1_icon = "check-circle";
+                      vm.btn1_loading = false;
+                      vm.structure_percent = 100.0;
+                      vm.files_percent = 100.0;
+                      break;
                   }
-                  vm.msg.push(parseData(data));
+                  vm.addMsg(parseData(data));
                   break;
                 case "files_progress":
                   const percent = (100.0 * data.now) / data.total;
                   vm.files_percent = new Number(percent.toFixed(2));
+                  vm.btn1_loading = true;
+                  vm.structure_percent = 100.0;
                   break;
                 default:
-                  vm.msg.push(parseData(data));
+                  vm.addMsg(parseData(data));
                   break;
               }
             } else {
-              vm.msg.push(`Failed, error=${msg?.err}, ${parseData(data)}`);
+              vm.addMsg(`Failed, error=${msg?.err}, ${parseData(data)}`);
             }
             break;
           default:
-            vm.msg.push(message.data);
+            vm.addMsg(message.data);
             break;
         }
       }
@@ -163,10 +186,15 @@ export default {
     vm.websocket.onOpen = () => {
       const ws_body = {
         type: "init",
-        wid: vm.repository.wid
+        wid: vm.repository.wid,
       };
       vm.websocket.send(JSON.stringify(ws_body));
     };
+
+    if (!vm.repository.wid) {
+      return;
+    }
+
     // Websocket onnect
     vm.websocket.connect(`ws://${vm.setting.address}/dir`);
   },
@@ -178,18 +206,22 @@ export default {
   props: ["current", "visible"],
 
   methods: {
+    addMsg(data) {
+      const vm = this;
+      if (vm.msg.length > 100) {
+        vm.msg.splice(0, 1);
+      }
+      vm.msg.push(data);
+    },
     init(target) {
       const vm = this;
       vm.mod = false;
     },
-
     afterVisibleChange(val) {},
-
     onClose() {
       const vm = this;
       vm.$emit("on-close", vm.mod);
     },
-
     btn1Click(e) {
       const vm = this;
       vm.mod = true;
@@ -206,7 +238,7 @@ export default {
         path: vm.path,
         current: vm.current,
         delete: vm.setting.delete,
-        encrypt: vm.setting.encrypt
+        encrypt: vm.setting.encrypt,
       };
       const onError = () => {
         console.log(`[Error] failed to import dir ${body.path}`);
@@ -218,7 +250,7 @@ export default {
       vm.$http
         .post(`http://${vm.setting.address}/dir/import`, body, options)
         .then(
-          resp => {
+          (resp) => {
             vm.btn1_loading = false;
             if (resp.body.status === "success") {
               vm.btn1_disabled = false;
@@ -228,12 +260,12 @@ export default {
               onError();
             }
           },
-          error => {
+          (error) => {
             onError();
           }
         );
-    }
-  }
+    },
+  },
 };
 </script>
 

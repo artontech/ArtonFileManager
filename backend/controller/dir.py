@@ -4,6 +4,8 @@ import json
 import logging
 import os
 import shutil
+import tornado.gen
+from tornado.concurrent import run_on_executor
 
 from backend.controller.default import (DefaultHandler, DefaultWSHandler)
 from backend.model.attribute import Attribute
@@ -14,6 +16,8 @@ from backend.util import (image, io, string)
 
 
 class DirWebSocket(DefaultWSHandler):
+    name = "dir"
+
     def open(self):
         logging.info("[ws] Dir WebSocket opened")
 
@@ -22,7 +26,7 @@ class DirWebSocket(DefaultWSHandler):
         msg_type = msg_json.get("type", None)
         if msg_type == "init":
             wid = msg_json.get("wid", None)
-            logging.info("[ws] init: wid=%s", wid)
+            logging.info("[ws] dir init: wid=%s", wid)
             if wid is None:
                 self.write_json(msg_type="init", err="no_wid")
                 return
@@ -51,14 +55,19 @@ class Import(DefaultHandler):
         ''' get '''
         self.post()
 
+    @tornado.gen.coroutine
     def post(self):
         ''' post '''
         wid = self.get_arg("wid")
         path = self.get_arg("path")
-        baseId = int(self.get_arg("current"))
+        base_id = int(self.get_arg("current"))
         delete = self.get_arg("delete")
         encrypt = self.get_arg("encrypt")
 
+        yield self.import_dir(wid, path, base_id, delete, encrypt)
+
+    @run_on_executor
+    def import_dir(self, wid, path, base_id, delete, encrypt):
         # trim input
         if not isinstance(encrypt, str) or encrypt.strip() == "":
             encrypt = None
@@ -82,19 +91,19 @@ class Import(DefaultHandler):
         dir_id_map = {}
         id_dir_map = {}
         dir_len = 0
-        base_path = os.path.dirname(path)
-        for current, dirs, files in os.walk(path):
+        for current, _, files in os.walk(path):
             if current not in dir_id_map:
                 dir_name = os.path.basename(current)
                 parent = os.path.dirname(current)
-                parent_id = dir_id_map.get(parent, {}).get("id", baseId)
+                parent_id = dir_id_map.get(parent, {}).get("id", base_id)
 
                 # check exist
-                dir_list = space.driver.get_dirs(parent=parent_id, delete=0, name=dir_name)
+                dir_list = space.driver.get_dirs(
+                    parent=parent_id, delete=0, name=dir_name)
                 if len(dir_list) > 0:
                     current_id = dir_list[0].id
                     dir_ok = True
-                    logging.info("existing dir %s:%s" % (current_id, current))
+                    logging.info("existing dir %s:%s", current_id, current)
                 else:
                     # add dir to table `dir`
                     dir_model = Dir()
@@ -104,7 +113,7 @@ class Import(DefaultHandler):
                     dir_model.parent = parent_id
                     dir_model.name = dir_name
                     current_id, dir_ok = space.driver.add_dir(dir_model)
-                    logging.info("add dir %s:%s" % (current_id, current))
+                    logging.info("add dir %s:%s", current_id, current)
                     # remove id
                     if dir_ok and current_id in miss_dir_id:
                         miss_dir_id.remove(current_id)
@@ -124,7 +133,7 @@ class Import(DefaultHandler):
                     for obj in file_list:
                         f = obj.name + obj.ext
                         exist_files[f] = True
-                    
+
                     # add files
                     for f in files:
                         if not exist_files.get(f, False):
@@ -146,18 +155,18 @@ class Import(DefaultHandler):
                     space.driver.commit()
                 else:
                     space.driver.rollback()
-                    space.send_ws(msg_type="import", err="db", data={
+                    space.send_ws(name="dir", msg_type="import", err="db", data={
                         "type": "msg", "msg": "structure_fail"
                     })
                     self.write_json(err="structure_fail")
                     return
             dir_len += 1
             if dir_len % 100 == 0:
-                space.send_ws(msg_type="import", status="run", data={
+                space.send_ws(name="dir", msg_type="import", status="run", data={
                     "type": "dir", "now": dir_len
                 })
 
-        space.send_ws(msg_type="import", status="run", data={
+        space.send_ws(name="dir", msg_type="import", status="run", data={
             "type": "msg", "msg": "structure_done"
         })
 
@@ -175,7 +184,7 @@ class Import(DefaultHandler):
             file_name = file_list[i].name
             file_path = os.path.join(id_dir_map.get(
                 dir_id, None), string.join(file_name, file_ext))
-            logging.info("Now: %d, %s" % (file_id, file_path))
+            logging.info("Now: %d, %s", file_id, file_path)
 
             # open file & find dup CRC & SHA
             with open(file_path, "rb") as f:
@@ -193,8 +202,9 @@ class Import(DefaultHandler):
             attr = None
             if len(attr_list) > 0:
                 attr = attr_list[0]
-                logging.warn("[import] duplicate file %s with %s(%s)" % (file_path, attr.file, attr.id))
-                space.send_ws(msg_type="import", status="run", data={
+                logging.warning("[import] duplicate file %s with %s(%s)",
+                                file_path, attr.file, attr.id)
+                space.send_ws(name="dir", msg_type="import", status="run", data={
                     "type": "warn", "msg": "dup_file", "file": file_path, "files": [attr.file, file_id]
                 })
                 attr_ok = True
@@ -221,8 +231,8 @@ class Import(DefaultHandler):
                         attr.width = img.shape[1]
                     except Exception as e:
                         logging.error(
-                            "[import] unable to load image %s. %s" % (file_path, e))
-                        space.send_ws(msg_type="import", status="run", data={
+                            "[import] unable to load image %s. %s", file_path, e)
+                        space.send_ws(name="dir", msg_type="import", status="run", data={
                             "type": "warn", "msg": "load_img_fail", "file": file_path})
                     try:
                         attr.ahash = image.a_hash(img)
@@ -230,16 +240,18 @@ class Import(DefaultHandler):
                         attr.phash = image.p_hash(img)
                     except Exception as e:
                         logging.error(
-                            "[import] unable to calc image hash %s. %s" % (file_path, e))
-                        space.send_ws(msg_type="import", status="run", data={
+                            "[import] unable to calc image hash %s. %s", file_path, e)
+                        space.send_ws(name="dir", msg_type="import", status="run", data={
                             "type": "warn", "msg": "calc_hash_fail", "file": file_path})
 
                 # move file
                 new_file_path = os.path.abspath(
                     os.path.join(space.data_path, hash_file_name))
                 if os.path.exists(new_file_path):
-                    bak_file_path = os.path.join(bak_path, os.path.basename(new_file_path))
-                    logging.warn("[import] dst path exist: %s, copy to: %s", new_file_path, bak_file_path)
+                    bak_file_path = os.path.join(
+                        bak_path, os.path.basename(new_file_path))
+                    logging.warning(
+                        "[import] dst path exist: %s, copy to: %s", new_file_path, bak_file_path)
                     shutil.copy(new_file_path, bak_file_path)
                 try:
                     if attr.encrypt is not None:
@@ -255,8 +267,8 @@ class Import(DefaultHandler):
                 except IOError as e:
                     move_file_ok = False
                     logging.error("[import] unable to copy file. %s", e)
-                    space.send_ws(msg_type="import", data={
-                                    "type": "msg", "msg": "io_error", "file": file_path, "error": e.strerror})
+                    space.send_ws(name="dir", msg_type="import", data={
+                        "type": "msg", "msg": "io_error", "file": file_path, "error": e.strerror})
 
                 # add `attribute`
                 attr.id, attr_ok = space.driver.add_attribute(attr)
@@ -274,19 +286,19 @@ class Import(DefaultHandler):
                 space.driver.commit()
             else:
                 space.driver.rollback()
-                space.send_ws(msg_type="import", data={
-                              "type": "msg", "msg": "attr_fail"})
+                space.send_ws(name="dir", msg_type="import", data={
+                    "type": "msg", "msg": "attr_fail"})
                 self.write_json(err="attr_fail")
                 return
 
             if i % step == 0:
-                space.send_ws(msg_type="import", status="run", data={
+                space.send_ws(name="dir", msg_type="import", status="run", data={
                     "type": "files_progress", "total": file_list_len, "now": i})
 
-        space.send_ws(msg_type="import", status="success", data={
+        space.send_ws(name="dir", msg_type="import", status="success", data={
             "type": "msg", "msg": "import_done"
         })
-        self.write_json(status="success", data=dir_id_map)
+        self.write_json(status="success", data=file_list_len)
 
 
 class Export(DefaultHandler):
@@ -338,9 +350,9 @@ class Export(DefaultHandler):
                     file_path = os.path.join(dir_path, obj.name + obj.ext)
                     if os.path.exists(file_path):
                         continue
-        
+
                     # get attr
-                    attr_list = space.driver.get_attrs(id=obj.attribute)
+                    attr_list = space.driver.get_attrs(item_id=obj.attribute)
                     if len(attr_list) <= 0:
                         self.write_json(err="no_attr")
                         return
@@ -349,9 +361,11 @@ class Export(DefaultHandler):
                         attr.size, attr.crc32, attr.sha256, None)
 
                     # path
-                    hash_file_path = os.path.join(space.data_path, hash_file_name)
+                    hash_file_path = os.path.join(
+                        space.data_path, hash_file_name)
                     if not os.path.exists(hash_file_path):
-                        self.write_json(err="no_data", data={"file": hash_file_path})
+                        self.write_json(err="no_data", data={
+                            "file": hash_file_path})
                         return
 
                     # decrypt
@@ -393,7 +407,8 @@ class List(DefaultHandler):
         result_list = []
         total = None
         if get_dir and get_file:
-            result_list, total = space.driver.get_dirs_files(current, page_no, page_size)
+            result_list, total = space.driver.get_dirs_files(
+                current, page_no, page_size)
         elif get_dir:
             dir_list = space.driver.get_dirs(parent=current, delete=0)
             result_list.extend(dir_list)
@@ -411,7 +426,8 @@ class List(DefaultHandler):
                 obj.icon = self.static_url("folder.png", include_version=False)
 
                 # get attribute tag
-                obj.tags = space.driver.union_attribute_tags(target=obj.id, type_id=2)
+                obj.tags = space.driver.union_attribute_tags(
+                    target=obj.id, type_id=2)
             elif obj.type == "file":
                 obj.icon = self.static_url(io.get_icon_name(
                     obj.ext) + ".png", include_version=False)
@@ -420,14 +436,15 @@ class List(DefaultHandler):
                         wid, obj.attribute)
 
                 # get attr
-                attr_list = space.driver.get_attrs(id=obj.attribute)
+                attr_list = space.driver.get_attrs(item_id=obj.attribute)
                 if len(attr_list) <= 0:
                     self.write_json(err="no_attr")
                     return
                 obj.attr = attr_list[0]
 
                 # get attribute tag by attribute id
-                obj.tags = space.driver.union_attribute_tags(target=obj.attribute, type_id=1)
+                obj.tags = space.driver.union_attribute_tags(
+                    target=obj.attribute, type_id=1)
 
         self.write_json(status="success", data={
                         "list": result_list, "total": total})
@@ -457,7 +474,7 @@ class Detail(DefaultHandler):
 
         if target_type == "file":
             # get attr
-            attr_list = space.driver.get_attrs(id=target)
+            attr_list = space.driver.get_attrs(item_id=target)
             if len(attr_list) <= 0:
                 self.write_json(err="no_attr")
                 return
@@ -487,7 +504,7 @@ class Detail(DefaultHandler):
                 file_count += len(file_list)
                 for obj in file_list:
                     # get attr
-                    attr_list = space.driver.get_attrs(id=obj.attribute)
+                    attr_list = space.driver.get_attrs(item_id=obj.attribute)
                     if len(attr_list) <= 0:
                         self.write_json(err="no_attr")
                         return
@@ -526,10 +543,11 @@ class Create(DefaultHandler):
             return
 
         # check exist
-        dir_list = space.driver.get_dirs(parent=current, delete=0, name=dir_name)
+        dir_list = space.driver.get_dirs(
+            parent=current, delete=0, name=dir_name)
         if len(dir_list) > 0:
             current_id = dir_list[0].id
-            logging.info("existing dir %s:%s" % (current_id, current))
+            logging.info("existing dir %s:%s", current_id, current)
             self.write_json(err="dir_exist")
             return
         else:
@@ -538,7 +556,7 @@ class Create(DefaultHandler):
             dir_model.parent = current
             dir_model.name = dir_name
             current_id, dir_ok = space.driver.add_dir(dir_model)
-            logging.info("add dir %s:%s" % (current_id, current))
+            logging.info("add dir %s:%s", current_id, current)
 
             # commit to db
             if dir_ok:
@@ -547,8 +565,9 @@ class Create(DefaultHandler):
                 space.driver.rollback()
                 self.write_json(err="db")
                 return
-            
+
             self.write_json(status="success", data=current_id)
+
 
 class MoveTo(DefaultHandler):
     ''' move to dir '''
@@ -591,7 +610,7 @@ class MoveTo(DefaultHandler):
         else:
             self.write_json(err="unknown_type")
             return
-        
+
         # commit to db
         if update_ok:
             space.driver.commit()
@@ -599,8 +618,9 @@ class MoveTo(DefaultHandler):
             space.driver.rollback()
             self.write_json(err="db")
             return
-        
+
         self.write_json(status="success", data=id_to)
+
 
 class Update(DefaultHandler):
     ''' update '''
@@ -622,7 +642,8 @@ class Update(DefaultHandler):
         delete = self.get_arg("delete", default=None)
 
         # check param
-        if len(types) != len(targets):
+        total = len(types)
+        if total != len(targets):
             self.write_json(err="param")
             return
 
@@ -633,7 +654,7 @@ class Update(DefaultHandler):
             return
 
         update_ok = False
-        for i in range(len(types)):
+        for i in range(total):
             target_type = types[i]
             target = targets[i]
             if target_type == "file":
@@ -656,10 +677,10 @@ class Update(DefaultHandler):
             else:
                 self.write_json(err="unknown_type")
                 return
-            
+
             if not update_ok:
                 break
-          
+
         # commit to db
         if update_ok:
             space.driver.commit()
@@ -667,5 +688,5 @@ class Update(DefaultHandler):
             space.driver.rollback()
             self.write_json(err="db")
             return
-        
+
         self.write_json(status="success", data=len(targets))

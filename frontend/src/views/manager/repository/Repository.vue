@@ -102,6 +102,11 @@ export default {
               if (checked) {
                 // Failed to open
                 vm.switch1_checked = false;
+              } else {
+                vm.$store.commit("updateRepository", {
+                loaded: false,
+                wid: undefined
+              });
               }
             }
           },

@@ -57,6 +57,10 @@ export default {
     vm.repository = vm.$store.state.repository;
     vm.setting = vm.$store.state.setting;
 
+    if (!vm.repository.wid) {
+      return;
+    }
+    
     vm.init();
   },
   props: ["visible"],

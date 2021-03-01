@@ -1,7 +1,10 @@
 ''' default '''
+import asyncio
 import json
 import logging
 
+from concurrent.futures import ThreadPoolExecutor
+from tornado.platform.asyncio import AnyThreadEventLoopPolicy
 from tornado.web import (
     _ARG_DEFAULT,
     RequestHandler,
@@ -17,6 +20,10 @@ from backend.util import (
 class DefaultHandler(RequestHandler):
     ''' default '''
     args = None
+
+    # See: https://github.com/tornadoweb/tornado/issues/2531
+    asyncio.set_event_loop_policy(AnyThreadEventLoopPolicy())
+    executor = ThreadPoolExecutor(20)
 
     def data_received(self, chunk):
         pass

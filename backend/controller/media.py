@@ -29,7 +29,7 @@ class Link(DefaultHandler):
             return
 
         # get attr
-        attr_list = space.driver.get_attrs(id=attribute)
+        attr_list = space.driver.get_attrs(item_id=attribute)
         if len(attr_list) <= 0:
             self.write_json(err="no_attr")
             return

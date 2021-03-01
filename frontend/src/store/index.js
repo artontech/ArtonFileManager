@@ -4,6 +4,7 @@ import persistedState from "vuex-persistedstate";
 
 import explorer from "./manager/explorer/explorer";
 import repository from "./manager/repository";
+import baidunetdisk from "./netdisk/baidunetdisk/baidunetdisk"
 import setting from "./setting";
 
 Vue.use(Vuex);
@@ -17,12 +18,7 @@ const options = {
         },
         setItem: (key, value) => {
           let obj = JSON.parse(value);
-          if (obj.explorer) {
-            delete obj.explorer.nocache;
-          }
-          if (obj.setting) {
-            delete obj.setting.nocache;
-          }
+          for (let item in obj) delete obj[item].nocache;
           localStorage.setItem(key, JSON.stringify(obj));
         },
         removeItem: (key) => {
@@ -35,11 +31,13 @@ const options = {
     ...explorer.state,
     ...repository.state,
     ...setting.state,
+    ...baidunetdisk.state,
   },
   mutations: {
     ...explorer.mutations,
     ...repository.mutations,
     ...setting.mutations,
+    ...baidunetdisk.mutations,
   },
 };
 

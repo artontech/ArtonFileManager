@@ -20,6 +20,9 @@ class Attribute(DefaultModel):
     key = ""
     delete = 0
 
+    # viewer
+    fs_id = 0
+
 def get_attribute(row) -> Attribute:
     obj = Attribute()
     obj.id = row[0]
@@ -48,4 +51,20 @@ def get_attribute_list(db_results):
 
     for row in db_results:
         result.append(get_attribute(row))
+    return result
+
+def union_attribute_baidunetdisk_list(db_results):
+    ''' union attribute baidunetdisk list '''
+    result = []
+    if db_results is None or len(db_results) <= 0:
+        return result
+
+    for row in db_results:
+        obj = Attribute()
+        obj.id = row[0]
+        obj.size = row[1]
+        obj.crc32 = row[2]
+        obj.sha256 = row[3]
+        obj.fs_id = row[4]
+        result.append(obj)
     return result

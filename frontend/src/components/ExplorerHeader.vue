@@ -1,5 +1,5 @@
 <template>
-  <a-layout-header class="header">
+  <a-layout-header class="explorerheader">
     <a-menu v-model="current" mode="horizontal">
       <a-menu-item key="file">
         <a-icon type="file" />文件管理
@@ -16,7 +16,7 @@
 
 <script>
 export default {
-  name: "Header",
+  name: "ExplorerHeader",
   props: {},
   data() {
     return {
@@ -30,7 +30,7 @@ export default {
 </script>
 
 <style scoped>
-.header {
+.explorerheader {
   background: #fff;
   padding: 0 10px;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);

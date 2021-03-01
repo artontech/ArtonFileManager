@@ -1,10 +1,12 @@
+''' mysql driver '''
+
 import configparser
 import datetime
 import json
 import logging
 import os
-import signal
 import subprocess
+import threading
 
 import pymysql
 
@@ -12,8 +14,8 @@ from db.driver import Driver
 from backend.model.default import DefaultModel
 from backend.model.attribute import (
     Attribute,
-    get_attribute,
-    get_attribute_list
+    get_attribute_list,
+    union_attribute_baidunetdisk_list
 )
 from backend.model.dir import (
     Dir,
@@ -32,18 +34,38 @@ from backend.model.tag import (
     Tag,
     get_tag_list
 )
-from backend.util import io
+from backend.model.netdisk import (
+    Netdisk,
+    get_netdisk_list
+)
+from backend.model.baidunetdisk import (
+    BaiduNetdisk,
+    get_baidunetdisk_list
+)
 
 
-def safe(s: str, collate: bool = False) -> str:
+def safe(data: str, collate: bool = False) -> str:
     ''' escape string for sql '''
-    result = "'%s'" % pymysql.escape_string(s)
+    result = "'%s'" % pymysql.escape_string(data)
     if collate:
         result += " COLLATE utf8mb4_general_ci"
     return result
 
 
+def mylock(func):
+    ''' lock since pymysql not support async call '''
+
+    def wrapper(self, *args, **kwargs):
+        self.lock()
+        result = func(self, *args, **kwargs)
+        self.unlock()
+        return result
+    return wrapper
+
+
 class MySQLDriver(Driver):
+    ''' MySQLDriver '''
+
     def __init__(self, options, workspace):
         self.database = None
         self.db = None
@@ -55,14 +77,25 @@ class MySQLDriver(Driver):
         self.port = None
         self.user = None
         self.workspace = workspace
+        self._lock = threading.Lock()
+
+    def lock(self):
+        ''' acquire lock '''
+        self._lock.acquire(blocking=True, timeout=-1)
+
+    def unlock(self):
+        ''' release lock '''
+        if self._lock.locked():
+            self._lock.release()
 
     def init(self):
-        MYSQL_PATH = self.options.mysql_path
-        CONFIG_PATH = self.options.config_path
-        logging.info("Init mysql at: %s" % (MYSQL_PATH))
+        ''' init '''
+        mysql_path = self.options.mysql_path
+        config_path = self.options.config_path
+        logging.info("Init mysql at: %s", mysql_path)
 
         if os.path.exists(self.json_path):
-            logging.warning("Workspace already exist: %s" % self.workspace)
+            logging.warning("Workspace already exist: %s", self.workspace)
             return 0
 
         os.makedirs(self.workspace, exist_ok=True)
@@ -72,41 +105,41 @@ class MySQLDriver(Driver):
             "workspace": self.workspace,
             "data_path": os.path.join(self.workspace, "afm_data")
         }
-        with open(self.json_path, 'w+') as f:
-            json.dump(config_json, f)
+        with open(self.json_path, 'w+') as fin:
+            json.dump(config_json, fin)
 
         os.makedirs(os.path.join(self.workspace, "mysql/data"))
 
         # gen config
-        ini_src_path = os.path.join(CONFIG_PATH, "mysql.windows.ini")
+        ini_src_path = os.path.join(config_path, "mysql.windows.ini")
         ini_dst_path = os.path.join(self.workspace, "mysql.windows.ini")
-        with open(ini_src_path, "r") as f:
-            ini = f.read()
+        with open(ini_src_path, "r") as fin:
+            ini = fin.read()
             ini = ini.replace(r"%port%", "13311")
             ini = ini.replace(
                 r"%workspace%", self.workspace.replace("\\", "/"))
             ini = ini.replace(r"%mysql%", os.path.dirname(
-                MYSQL_PATH).replace("\\", "/"))
-        with open(ini_dst_path, "w+") as f:
-            f.write(ini)
+                mysql_path).replace("\\", "/"))
+        with open(ini_dst_path, "w+") as fout:
+            fout.write(ini)
 
         # init service
-        cmd = [os.path.join(MYSQL_PATH, "mysqld"),
+        cmd = [os.path.join(mysql_path, "mysqld"),
                "--defaults-file=%s" % (ini_dst_path),
-               "--init-file=%s" % os.path.join(CONFIG_PATH,
+               "--init-file=%s" % os.path.join(config_path,
                                                "mysql.windows.sql"),
                "--initialize"]  # --initialize-insecure
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         return ret.returncode
 
     def open(self):
-        MYSQL_PATH = self.options.mysql_path
+        mysql_path = self.options.mysql_path
         ini_path = os.path.join(self.workspace, "mysql.windows.ini")
-        logging.info("Open mysql at: %s" % (MYSQL_PATH))
+        logging.info("Open mysql at: %s", mysql_path)
 
         # load config
         if not os.path.exists(self.json_path):
-            logging.warning("No json config: %s" % self.workspace)
+            logging.warning("No json config: %s", self.workspace)
             return -1
         with open(self.json_path, 'r+') as f:
             config_json = json.load(f)
@@ -147,15 +180,15 @@ class MySQLDriver(Driver):
             with open(self.json_path, 'w+') as f:
                 json.dump(config_json, f)
 
-        cmd = [os.path.join(MYSQL_PATH, "mysqld"),
+        cmd = [os.path.join(mysql_path, "mysqld"),
                "--install", "ArtonFileManagerMySQL",
                "--defaults-file=%s" % (ini_path)]
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         if ret.returncode != 0:
             return ret
 
         cmd = ["net", "start", "ArtonFileManagerMySQL"]
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         if ret.returncode != 0:
             return ret
 
@@ -171,17 +204,18 @@ class MySQLDriver(Driver):
         result = True
 
         cmd = ["net", "stop", "ArtonFileManagerMySQL"]
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         if ret.returncode != 0:
             result = False
 
         cmd = ["sc", "delete", "ArtonFileManagerMySQL"]
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         if ret.returncode != 0:
             result = False
 
         return result
 
+    @mylock
     def commit(self):
         ''' commit '''
         self.open_db().commit()
@@ -243,6 +277,7 @@ class MySQLDriver(Driver):
         return sql
 
     def get_dir_file_list(self, db_results):
+        ''' get dir file list '''
         result = []
         if db_results is None or len(db_results) <= 0:
             return result
@@ -276,13 +311,13 @@ class MySQLDriver(Driver):
         try:
             with self.open_db().cursor() as cursor:
                 result = cursor.execute(sql)
-                self.commit()
         except Exception as err:
             logging.warning(sql)
             raise err
 
         return result
 
+    @mylock
     def get_miss_ids(self, table: str, limit: int = None) -> list:
         ''' get id gap '''
 
@@ -290,6 +325,8 @@ class MySQLDriver(Driver):
         # reset auto_increment if table is empty
         if self.get_a_row(table) is None:
             self.reset_auto_increment(table)
+            self.open_db().commit()
+            self.close_db()
             return result
 
         # for MySQL 8.0+
@@ -321,11 +358,12 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             result = results[0]
         return result
 
-    def delete(self, table: str, id: str) -> bool:
+    @mylock
+    def delete(self, table: str, item_id: str) -> bool:
         ''' delete by id '''
 
         ok = False
-        sql = "DELETE FROM `%s` WHERE `id`=%s" % (table, id)
+        sql = "DELETE FROM `%s` WHERE `id`=%s" % (table, item_id)
         try:
             with self.open_db().cursor() as cursor:
                 r = cursor.execute(sql)
@@ -336,15 +374,16 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
 
         return ok
 
+    @mylock
     def add_file(self, file: File) -> bool:
         ''' add file '''
         time_now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         ok = True
 
         if file.id is None:
-            id = "NULL"
+            item_id = "NULL"
         else:
-            id = "'%s'" % file.id
+            item_id = "'%s'" % file.id
         if file.name is None:
             name = "NULL"
         else:
@@ -355,7 +394,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             ext = "%s" % safe(file.ext)
 
         sql = "INSERT INTO `%s`.file (`id`,`dir`,`attribute`,`name`,`ext`,`delete`,`createtime`,`modtime`) \
-            VALUES (%s,%s,NULL,%s,%s,0,'%s','%s');" % (self.db_name, id, file.dir, name, ext, time_now, time_now)
+            VALUES (%s,%s,NULL,%s,%s,0,'%s','%s');" % (self.db_name, item_id, file.dir, name, ext, time_now, time_now)
         try:
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
@@ -368,6 +407,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
 
         return current_id, ok
 
+    @mylock
     def add_dir(self, dir_model: Dir):
         ''' add new dir to database '''
         time_now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -375,9 +415,9 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         ok = False
 
         if dir_model.id is None:
-            id = "NULL"
+            item_id = "NULL"
         else:
-            id = "'%s'" % dir_model.id
+            item_id = "'%s'" % dir_model.id
         if dir_model.parent is None:
             parent = 0
         else:
@@ -388,7 +428,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             name = "%s" % safe(dir_model.name)
 
         sql = "INSERT INTO `%s`.dir (`id`,`parent`,`name`,`delete`,`createtime`,`modtime`) VALUES \
-            (%s,%s,%s,0,'%s','%s');" % (self.db_name, id, parent, name, time_now, time_now)
+            (%s,%s,%s,0,'%s','%s');" % (self.db_name, item_id, parent, name, time_now, time_now)
         try:
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
@@ -400,15 +440,16 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise err
         return current_id, ok
 
+    @mylock
     def add_attribute(self, attr: Attribute):
         ''' add new attr to database '''
         current_id = "NULL"
         ok = False
 
         if attr.id is None:
-            id = "NULL"
+            item_id = "NULL"
         else:
-            id = "'%s'" % attr.id
+            item_id = "'%s'" % attr.id
         if attr.encrypt is None:
             encrypt = "NULL"
         else:
@@ -420,10 +461,9 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
 
         sql = "INSERT INTO `%s`.attribute (`id`,`file`,`type`,`size`,`crc32`,`sha256`,`ext`,`width`,`height`,`color`, \
             `ahash`,`phash`,`dhash`,`desc`,`encrypt`,`key`,`delete`) VALUES (%s,%s,%d,%d,'%s','%s',%s,%d,%d,'%s',%d,%d,%d, \
-            %s,%s,%s,%d);" % (self.db_name, id, attr.file, attr.type, attr.size, attr.crc32, attr.sha256, safe(attr.ext),
-                           attr.width, attr.height, attr.color, attr.ahash, attr.phash, attr.dhash, safe(
-                               attr.desc),
-                           encrypt, key, attr.delete)
+            %s,%s,%s,%d);" % (self.db_name, item_id, attr.file, attr.type, attr.size, attr.crc32, attr.sha256,
+                              safe(attr.ext), attr.width, attr.height, attr.color, attr.ahash, attr.phash, attr.dhash,
+                              safe(attr.desc), encrypt, key, attr.delete)
         try:
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
@@ -435,18 +475,19 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise err
         return current_id, ok
 
+    @mylock
     def add_attribute_tag(self, attribute_tag: AttributeTag):
         ''' add new attribute tag to database '''
         current_id = "NULL"
         ok = False
 
         if attribute_tag.id is None:
-            id = "NULL"
+            item_id = "NULL"
         else:
-            id = "'%s'" % attribute_tag.id
+            item_id = "'%s'" % attribute_tag.id
 
         sql = "INSERT INTO `%s`.attribute_tag (`id`,`tag_id`,`target`,`type`,`delete`) VALUES (%s,%d,%d,%d,0);" % (
-            self.db_name, id, attribute_tag.tag_id, attribute_tag.target, attribute_tag.type)
+            self.db_name, item_id, attribute_tag.tag_id, attribute_tag.target, attribute_tag.type)
         try:
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
@@ -458,18 +499,19 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise err
         return current_id, ok
 
+    @mylock
     def add_tag(self, tag: Tag):
         ''' add new tag to database '''
         current_id = "NULL"
         ok = False
 
         if tag.id is None:
-            id = "NULL"
+            item_id = "NULL"
         else:
-            id = "'%s'" % tag.id
+            item_id = "'%s'" % tag.id
 
         sql = "INSERT INTO `%s`.tag (`id`,`key`,`value`,`delete`) VALUES (%s,%s,%s,0);" % (
-            self.db_name, id, safe(tag.key), safe(tag.value))
+            self.db_name, item_id, safe(tag.key), safe(tag.value))
         try:
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
@@ -481,6 +523,31 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise err
         return current_id, ok
 
+    @mylock
+    def add_baidunetdisk(self, baidunetdisk: BaiduNetdisk):
+        ''' add baidu netdisk file info '''
+        current_id = "NULL"
+        ok = False
+
+        if baidunetdisk.id is None:
+            item_id = "NULL"
+        else:
+            item_id = "'%s'" % baidunetdisk.id
+
+        sql = "INSERT INTO `%s`.baidunetdisk (`id`,`attribute`,`fs_id`) VALUES (%s,%d,%d);" % (
+            self.db_name, item_id, baidunetdisk.attribute, baidunetdisk.fs_id)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                current_id = cursor.lastrowid
+                ok = True
+        except Exception as err:
+            logging.warning(sql)
+            self.rollback()
+            raise err
+        return current_id, ok
+
+    @mylock
     def get_files(self, file: File, attr_null: bool = None):
         ''' list files '''
         results = []
@@ -522,13 +589,14 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise err
         return results, count
 
-    def get_dirs(self, id=None, parent: int = None, delete: int = None, name: str = None):
+    @mylock
+    def get_dirs(self, item_id=None, parent: int = None, delete: int = None, name: str = None):
         ''' list dirs '''
         results = []
 
         sql_where = ""
-        if id is not None:
-            sql_where += " and `id`=%s" % (id)
+        if item_id is not None:
+            sql_where += " and `id`=%s" % (item_id)
         if parent is not None:
             sql_where += " and `parent`=%d" % (parent)
         if delete is not None:
@@ -549,13 +617,14 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return results
 
-    def get_attrs(self, id=None, size: int = None, crc32: int = None, sha256: str = None, delete: int = 0):
+    @mylock
+    def get_attrs(self, item_id=None, size: int = None, crc32: int = None, sha256: str = None, delete: int = 0):
         ''' list attributes '''
         results = []
 
         sql_where = ""
-        if id is not None:
-            sql_where += " and `id`=%s" % (id)
+        if item_id is not None:
+            sql_where += " and `id`=%s" % (item_id)
         if size is not None:
             sql_where += " and `size`=%d" % (size)
         if crc32 is not None:
@@ -579,13 +648,14 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return results
 
-    def get_attribute_tags(self, id=None, tag_id: int = None, target: int = None, type_id: int = None, delete: int = 0):
+    @mylock
+    def get_attribute_tags(self, item_id=None, tag_id: int = None, target: int = None, type_id: int = None, delete: int = 0):
         ''' list attribute tags '''
         results = []
 
         sql_where = ""
-        if id is not None:
-            sql_where += " and `id`=%s" % (id)
+        if item_id is not None:
+            sql_where += " and `id`=%s" % (item_id)
         if tag_id is not None:
             sql_where += " and `tag_id`=%d" % (tag_id)
         if target is not None:
@@ -609,13 +679,14 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return results
 
-    def get_tags(self, id=None, key: str = None, value: str = None, delete: int = 0):
+    @mylock
+    def get_tags(self, item_id=None, key: str = None, value: str = None, delete: int = 0):
         ''' list tags '''
         results = []
 
         sql_where = ""
-        if id is not None:
-            sql_where += " and `id`=%s" % (id)
+        if item_id is not None:
+            sql_where += " and `id`=%s" % (item_id)
         if key is not None:
             sql_where += " and `key`=%s" % safe(key)
         if value is not None:
@@ -637,13 +708,39 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return results
 
-    def union_attribute_tags(self, id=None, target: int = None, type_id: int = None, delete: int = 0):
+    @mylock
+    def get_netdisks(self, item_id=None, type_name: str = None):
+        ''' list tags '''
+        results = []
+
+        sql_where = ""
+        if item_id is not None:
+            sql_where += " and `id`=%s" % (item_id)
+        if type_name is not None:
+            sql_where += " and `type`=%s" % safe(type_name)
+        sql_where = sql_where.strip().lstrip('and')
+        if sql_where == "":
+            return results
+
+        sql = "SELECT * FROM `%s`.netdisk WHERE %s" % (
+            self.db_name, sql_where)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = get_netdisk_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    @mylock
+    def union_attribute_tags(self, item_id=None, target: int = None, type_id: int = None, delete: int = 0):
         ''' list union attribute tags '''
         results = []
 
         sql_where = ""
-        if id is not None:
-            sql_where += " and `at`.`id`=%s" % (id)
+        if item_id is not None:
+            sql_where += " and `at`.`id`=%s" % (item_id)
         if target is not None:
             sql_where += " and `at`.`target`=%d" % (target)
         if type_id is not None:
@@ -665,6 +762,23 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return results
 
+    @mylock
+    def union_attribute_baidunetdisks(self):
+        ''' list attributes not uploaded '''
+        results = []
+
+        sql = "SELECT a.id,a.size,a.crc32,a.sha256,b.fs_id FROM `%s`.attribute a LEFT JOIN `%s`.baidunetdisk b ON a.id=b.attribute WHERE b.attribute is null" % (
+            self.db_name, self.db_name)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = union_attribute_baidunetdisk_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    @mylock
     def get_dirs_files(self, current: int, page_no: int = None, page_size: int = None):
         ''' list files and dirs '''
         results = []
@@ -694,6 +808,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise err
         return results, count
 
+    @mylock
     def update_file(self, file: File):
         ''' update file '''
         ok = False
@@ -704,9 +819,9 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         if file.dir is not None:
             sql_set += ", `dir`=%d" % (file.dir)
         if file.name is not None:
-            sql_set = ", `name`=%s" % safe(file.name)
+            sql_set += ", `name`=%s" % safe(file.name)
         if file.ext is not None:
-            ext = ", `ext`=%s" % safe(file.ext)
+            sql_set += ", `ext`=%s" % safe(file.ext)
         if file.delete is not None:
             sql_set += ", `delete`=%d" % (file.delete)
         sql_set = sql_set.lstrip(',')
@@ -723,6 +838,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return ok
 
+    @mylock
     def update_dir(self, dir_model: Dir):
         ''' update dir '''
         ok = False
@@ -748,6 +864,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return ok
 
+    @mylock
     def update_attribute_tag(self, attribute_tag: AttributeTag):
         ''' update attribute tag '''
         ok = False
@@ -775,6 +892,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return ok
 
+    @mylock
     def recover_attribute_tag(self, tag_id: int = None, target: int = None, type_id: int = None):
         ''' recover attribute tag '''
         ok = False
@@ -800,6 +918,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             raise e
         return ok
 
+    @mylock
     def update_tag(self, tag: Tag):
         ''' update tag '''
         ok = False
@@ -815,6 +934,31 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
 
         sql = "UPDATE `%s`.tag SET %s WHERE id=%d" % (
             self.db_name, sql_set, tag.id)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                ok = True
+        except Exception as e:
+            logging.warning(sql)
+            self.rollback()
+            raise e
+        return ok
+
+    @mylock
+    def update_netdisk(self, netdisk: Netdisk):
+        ''' update netdisk '''
+        ok = False
+
+        sql_set = ""
+        if netdisk.access_token is not None:
+            sql_set += ", `access_token`=%s" % safe(netdisk.access_token)
+        if netdisk.token_expire is not None:
+            sql_set += ", `token_expire`='%s'" % (
+                netdisk.token_expire.strftime('%Y-%m-%d %H:%M:%S'))
+        sql_set = sql_set.lstrip(',')
+
+        sql = "UPDATE `%s`.netdisk SET %s WHERE id=%d" % (
+            self.db_name, sql_set, netdisk.id)
         try:
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
