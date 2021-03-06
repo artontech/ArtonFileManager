@@ -4,8 +4,8 @@ import datetime
 import json
 import logging
 import os
-import requests
 import time
+import requests
 import tornado.gen
 from tornado.concurrent import run_on_executor
 
@@ -15,6 +15,7 @@ from backend.service import workspace
 from backend.util import (io, network)
 
 USE_LOGIC_DELETE = True
+MAX_RETRY = 20
 
 
 class BaiduWebSocket(DefaultWSHandler):
@@ -80,8 +81,9 @@ class OAuth(DefaultHandler):
 
         # OAuth
         url = "https://openapi.baidu.com/oauth/2.0/token?grant_type=authorization_code&\
-code=%s&client_id=%s&client_secret=%s&redirect_uri=%s" % (
-            code, netdisk_info.api_key, netdisk_info.secret_key, netdisk_info.redirect_uri)
+code=%s&client_id=%s&client_secret=%s&redirect_uri=%s" % (code, netdisk_info.api_key,
+                                                          netdisk_info.secret_key,
+                                                          netdisk_info.redirect_uri)
         response = requests.get(url)
         logging.warning("Baidu OAuth result: %s", response.text)
 
@@ -251,9 +253,11 @@ class Sync(DefaultHandler):
         last_err = ""
         for i in range(attr_len):
             retry = 0
-            while retry < 3:
-                if retry > 0:
-                    time.sleep(20)
+            while retry < MAX_RETRY:
+                if retry > 3:
+                    time.sleep(360)
+                elif retry > 0:
+                    time.sleep(36)
                 retry += 1
                 attr = attrs[i]
                 hash_file_name = io.format_file_name(
@@ -276,7 +280,8 @@ class Sync(DefaultHandler):
                 payload['block_list'] = json.dumps(blocks_md5)
                 payload['content-md5'] = str(io.get_md5(file_data))
                 payload['slice-md5'] = str(io.get_md5(file_data[:262144]))
-                logging.info("Attr %s, Retry %d, Pre-upload payload: %s", attr.id, retry, payload)
+                logging.info(
+                    "Attr %s, Retry %d, Pre-upload payload: %s", attr.id, retry, payload)
 
                 # pre-upload
                 headers = {'User-Agent': 'pan.baidu.com'}
@@ -304,13 +309,22 @@ class Sync(DefaultHandler):
                     # upload file
                     block_list_len = len(block_list)
                     for j in block_list:
-                        url_upload = "https://d.pcs.baidu.com/rest/2.0/pcs/superfile2?method=upload&\
-access_token=%s&path=%s&type=tmpfile&uploadid=%s&partseq=%d" % (access_token, upload_path, uploadid, j)
-                        resp_upload = network.request(
-                            "POST", url_upload, max_retry=None, retry_delay=20, headers=headers, data={},
-                            files=[('file', blocks[j])])
-                        logging.info("Upload slice %d/%d result: %s", j, block_list_len, resp_upload)
-                        if resp_upload.get('errno', 0) != 0:
+                        upload_retry = 0
+                        while upload_retry < MAX_RETRY:
+                            if upload_retry > 0:
+                                time.sleep(36)
+                            upload_retry += 1
+                            url_upload = "https://d.pcs.baidu.com/rest/2.0/pcs/superfile2?method=upload&\
+    access_token=%s&path=%s&type=tmpfile&uploadid=%s&partseq=%d" % (access_token, upload_path, uploadid, j)
+                            resp_upload = network.request(
+                                "POST", url_upload, max_retry=None, retry_delay=20, headers=headers, data={},
+                                files=[('file', blocks[j])])
+                            logging.info("Upload slice %d/%d,%d result: %s",
+                                        j, block_list_len, upload_retry, resp_upload)
+                            if resp_upload.get('errno', 0) == 0:
+                                upload_retry = 0
+                                break
+                        if upload_retry >= MAX_RETRY:
                             last_err = "fail_upload"
                             continue
 
@@ -331,7 +345,8 @@ access_token=%s&path=%s&type=tmpfile&uploadid=%s&partseq=%d" % (access_token, up
                 baidunetdisk.id = attr.id
                 baidunetdisk.attribute = attr.id
                 baidunetdisk.fs_id = fs_id
-                baidunetdisk.id, ok = space.driver.add_baidunetdisk(baidunetdisk)
+                baidunetdisk.id, ok = space.driver.add_baidunetdisk(
+                    baidunetdisk)
                 if not ok:
                     last_err = "db"
                     continue
@@ -345,7 +360,7 @@ access_token=%s&path=%s&type=tmpfile&uploadid=%s&partseq=%d" % (access_token, up
                 # Stop retry
                 retry = 0
                 break
-            if retry >= 3:
+            if retry >= MAX_RETRY:
                 self.write_json(err=last_err)
                 return
 
