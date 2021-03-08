@@ -15,7 +15,10 @@ from backend.service import workspace
 from backend.util import (io, network)
 
 USE_LOGIC_DELETE = True
-MAX_RETRY = 20
+MAX_RETRY = 3
+PROXY = {"socks5": "127.0.0.1:1090",
+         "https": "127.0.0.1:41091", "http": "127.0.0.1:41091"}
+PROXY = None
 
 
 class BaiduWebSocket(DefaultWSHandler):
@@ -167,7 +170,8 @@ class UserInfo(DefaultHandler):
         headers = {
             'User-Agent': 'pan.baidu.com'
         }
-        response = requests.request("GET", url, headers=headers, data=payload)
+        response = requests.request(
+            "GET", url, headers=headers, data=payload, proxies=PROXY)
         res_json = json.loads(response.text.encode('utf8'))
         self.write_json(status="success", data=res_json)
 
@@ -192,7 +196,8 @@ class Quota(DefaultHandler):
         headers = {
             'User-Agent': 'pan.baidu.com'
         }
-        response = requests.request("GET", url, headers=headers, data=payload)
+        response = requests.request(
+            "GET", url, headers=headers, data=payload, proxies=PROXY)
         res_json = json.loads(response.text.encode('utf8'))
         self.write_json(status="success", data=res_json)
 
@@ -286,7 +291,7 @@ class Sync(DefaultHandler):
                 # pre-upload
                 headers = {'User-Agent': 'pan.baidu.com'}
                 resp_pre = network.request(
-                    "POST", url_pre, max_retry=None, retry_delay=10, headers=headers, data=payload, files=[])
+                    "POST", url_pre, max_retry=MAX_RETRY, retry_delay=10, headers=headers, data=payload, files=[], proxies=PROXY)
                 logging.info("Pre-upload result: %s", resp_pre)
 
                 return_type = resp_pre.get('return_type', 0)
@@ -308,8 +313,8 @@ class Sync(DefaultHandler):
 
                     # upload file
                     block_list_len = len(block_list)
+                    upload_retry = 0
                     for j in block_list:
-                        upload_retry = 0
                         while upload_retry < MAX_RETRY:
                             if upload_retry > 0:
                                 time.sleep(36)
@@ -317,23 +322,25 @@ class Sync(DefaultHandler):
                             url_upload = "https://d.pcs.baidu.com/rest/2.0/pcs/superfile2?method=upload&\
     access_token=%s&path=%s&type=tmpfile&uploadid=%s&partseq=%d" % (access_token, upload_path, uploadid, j)
                             resp_upload = network.request(
-                                "POST", url_upload, max_retry=None, retry_delay=20, headers=headers, data={},
-                                files=[('file', blocks[j])])
+                                "POST", url_upload, max_retry=0, retry_delay=20, headers=headers, data={},
+                                files=[('file', blocks[j])], proxies=PROXY)
                             logging.info("Upload slice %d/%d,%d result: %s",
-                                        j, block_list_len, upload_retry, resp_upload)
-                            if resp_upload.get('errno', 0) == 0:
+                                         j, block_list_len, upload_retry, resp_upload)
+                            if resp_upload.get('errno', -1) == 0:
                                 upload_retry = 0
                                 break
                         if upload_retry >= MAX_RETRY:
                             last_err = "fail_upload"
-                            continue
+                            break
+                    if upload_retry >= MAX_RETRY:
+                        continue
 
                     # create file
                     url_create = "https://pan.baidu.com/rest/2.0/xpan/file?method=create&access_token=%s" % (
                         access_token)
                     payload['uploadid'] = uploadid
                     resp_create = network.request(
-                        "POST", url_create, max_retry=None, retry_delay=20, headers=headers, data=payload, files=[])
+                        "POST", url_create, max_retry=MAX_RETRY, retry_delay=20, headers=headers, data=payload, files=[], proxies=PROXY)
                     logging.info("Create result: %s", resp_create)
                     fs_id = resp_create.get('fs_id', None)
                     if fs_id is None:
@@ -362,7 +369,10 @@ class Sync(DefaultHandler):
                 break
             if retry >= MAX_RETRY:
                 self.write_json(err=last_err)
-                return
+                #return
+                with open("./failed_file.log", 'a+') as fout:
+                    fout.write(target_path + '\n')
+                continue
 
         space.send_ws(name="baidu", msg_type="done", status="success", data={
             "total": attr_len
