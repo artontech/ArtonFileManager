@@ -53,6 +53,10 @@
                         <a-icon type="cloud-sync" />
                         <span>{{$t('menu.baidusync')}}</span>
                     </a-menu-item>
+                    <a-menu-item key="BaiduFix" v-on:click="go">
+                        <a-icon type="tool" />
+                        <span>{{$t('menu.baidufix')}}</span>
+                    </a-menu-item>
                 </a-sub-menu>
             </a-sub-menu>
         </a-menu>

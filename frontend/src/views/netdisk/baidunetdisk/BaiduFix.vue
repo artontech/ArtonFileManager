@@ -1,18 +1,18 @@
 <template>
-  <div class="baidusync">
+  <div class="baidufix">
     <a-button type="primary" :loading="btn1_loading" @click="btn1Click">{{
-      $t("baidunetdisk.baidusync.btn1_caption")
+      $t("baidunetdisk.baidufix.btn1_caption")
     }}</a-button>
 
     <!-- Progress dashboard -->
     <a-divider />
-    <b>{{ $t("baidunetdisk.baidusync.label1_caption") }}</b>
+    <b>{{ $t("baidunetdisk.baidufix.label1_caption") }}</b>
     <a-divider />
     <a-row type="flex" justify="center">
       <a-col :span="8">
         <a-tooltip
           class="tooltip-structure"
-          :title="$t('baidunetdisk.baidusync.tooltip1_caption')"
+          :title="$t('baidunetdisk.baidufix.tooltip1_caption')"
         >
           <a-progress
             type="dashboard"
@@ -20,7 +20,7 @@
             :status="status"
           >
             <template #format="percent">
-              <span>{{ $t("baidunetdisk.baidusync.progress1_caption") }}</span>
+              <span>{{ $t("baidunetdisk.baidufix.progress1_caption") }}</span>
               <br />
               <span>{{ percent }}%</span>
             </template>
@@ -28,14 +28,14 @@
         </a-tooltip>
       </a-col>
       <a-col :span="8">
-        <a-tooltip :title="$t('baidunetdisk.baidusync.tooltip2_caption')">
+        <a-tooltip :title="$t('baidunetdisk.baidufix.tooltip2_caption')">
           <a-progress
             type="dashboard"
             :percent="upload_percent"
             :status="status"
           >
             <template #format="percent">
-              <span>{{ $t("baidunetdisk.baidusync.progress2_caption") }}</span>
+              <span>{{ $t("baidunetdisk.baidufix.progress2_caption") }}</span>
               <br />
               <span>{{ percent }}%</span>
             </template>
@@ -85,7 +85,7 @@ export default {
               vm.btn1_loading = true;
             }
             break;
-          case "sync":
+          case "fix":
             const percent = (100.0 * data.now) / data.total;
             vm.check_percent = 100.0;
             vm.upload_percent = new Number(percent.toFixed(2));
@@ -124,15 +124,14 @@ export default {
         wid: vm.repository.wid,
         access_token: vm.info.access_token,
         upload_root: vm.info.upload_root,
-        vip_type: vm.user_info.vip_type,
       };
       vm.btn1_loading = true;
       const onError = () => {
-        console.log(`[Error] failed to sync ${body.upload_root}`);
+        console.log(`[Error] failed to fix ${body.upload_root}`);
         vm.btn1_loading = false;
       };
       vm.$http
-        .post(`http://${vm.setting.address}/baidunetdisk/sync`, body, options)
+        .post(`http://${vm.setting.address}/baidunetdisk/fix`, body, options)
         .then((resp) => {
           vm.switch1_loading = false;
           if (resp.body.status === "success") {

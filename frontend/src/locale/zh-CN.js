@@ -66,6 +66,7 @@ const menu = {
   baidunetdisk: "百度网盘",
   baidumanager: "网盘管理",
   baidusync: "网盘同步",
+  baidufix: "网盘修复",
   dropdown_menu: {
     label1_caption: "编号",
     label2_caption: "占用空间",
@@ -119,6 +120,14 @@ const baidunetdisk = {
     progress1_caption: "检查",
     tooltip2_caption: "上传进度",
     progress2_caption: "上传",
+  },
+  baidufix: {
+    btn1_caption: "修复",
+    label1_caption: "进度",
+    tooltip1_caption: "检查进度",
+    progress1_caption: "检查",
+    tooltip2_caption: "修复进度",
+    progress2_caption: "修复",
   },
 };
 

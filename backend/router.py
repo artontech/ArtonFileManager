@@ -37,6 +37,7 @@ def make_app():
         (r"/baidunetdisk/userinfo", baidunetdisk.UserInfo, dict(name="get user info")),
         (r"/baidunetdisk/quota", baidunetdisk.Quota, dict(name="get quota")),
         (r"/baidunetdisk/sync", baidunetdisk.Sync, dict(name="sync")),
+        (r"/baidunetdisk/fix", baidunetdisk.Fix, dict(name="fix")),
 
         (r"/", error.NotFound)
     ], **options.settings)

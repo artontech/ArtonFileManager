@@ -29,6 +29,11 @@ const routes = [
     name: "BaiduSync",
     component: () => import("../views/netdisk/baidunetdisk/BaiduSync.vue"),
   },
+  {
+    path: "/baidufix",
+    name: "BaiduFix",
+    component: () => import("../views/netdisk/baidunetdisk/BaiduFix.vue"),
+  },
 ];
 
 export default routes;

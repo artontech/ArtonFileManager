@@ -15,7 +15,7 @@ from backend.service import workspace
 from backend.util import (io, network)
 
 USE_LOGIC_DELETE = True
-MAX_RETRY = 3
+MAX_RETRY = 1
 PROXY = {"socks5": "127.0.0.1:1090",
          "https": "127.0.0.1:41091", "http": "127.0.0.1:41091"}
 PROXY = None
@@ -239,6 +239,7 @@ class Sync(DefaultHandler):
         space.send_ws(name="baidu", msg_type="check", status="success", data={
             "total": attr_len
         })
+        headers = {'User-Agent': 'pan.baidu.com'}
         url_pre = "http://pan.baidu.com/rest/2.0/xpan/file?method=precreate&access_token=%s" % (
             access_token)
         payload = {
@@ -289,7 +290,6 @@ class Sync(DefaultHandler):
                     "Attr %s, Retry %d, Pre-upload payload: %s", attr.id, retry, payload)
 
                 # pre-upload
-                headers = {'User-Agent': 'pan.baidu.com'}
                 resp_pre = network.request(
                     "POST", url_pre, max_retry=MAX_RETRY, retry_delay=10, headers=headers, data=payload, files=[], proxies=PROXY)
                 logging.info("Pre-upload result: %s", resp_pre)
@@ -369,7 +369,125 @@ class Sync(DefaultHandler):
                 break
             if retry >= MAX_RETRY:
                 self.write_json(err=last_err)
-                #return
+                # return
+                with open("./failed_file.log", 'a+') as fout:
+                    fout.write(target_path + '\n')
+                continue
+
+        space.send_ws(name="baidu", msg_type="done", status="success", data={
+            "total": attr_len
+        })
+        self.write_json(status="success", data=attr_len)
+        return
+
+
+class Fix(DefaultHandler):
+    ''' fix '''
+
+    def data_received(self, chunk):
+        pass
+
+    def get(self):
+        ''' get '''
+        self.post()
+
+    @tornado.gen.coroutine
+    def post(self):
+        ''' post '''
+        wid = self.get_arg("wid")
+        access_token = self.get_arg("access_token")
+        upload_root = self.get_arg("upload_root")
+
+        # get workspace first
+        space = workspace.get_by_id(wid)
+        if space is None or not space.enabled:
+            self.write_json(err="no_workspace")
+            return
+
+        yield self.fix(space, access_token, upload_root)
+
+    @run_on_executor
+    def fix(self, space, access_token, upload_root):
+        # get attributes
+        attrs = space.driver.union_attribute_baidunetdisks()
+        if attrs is None:
+            self.write_json(err="db")
+            return
+        attr_len = len(attrs)
+        space.send_ws(name="baidu", msg_type="check", status="success", data={
+            "total": attr_len
+        })
+        headers = {'User-Agent': 'pan.baidu.com'}
+        payload = {}
+        last_err = ""
+        for i in range(attr_len):
+            retry = 0
+            while retry < MAX_RETRY:
+                if retry > 3:
+                    time.sleep(360)
+                elif retry > 0:
+                    time.sleep(36)
+                retry += 1
+                attr = attrs[i]
+                hash_file_name = io.format_file_name(
+                    attr.size, attr.crc32, attr.sha256, None)
+                target_path = os.path.abspath(
+                    os.path.join(space.data_path, hash_file_name))
+
+                logging.info("Attr %s, Retry %d, search: %s",
+                             attr.id, retry, hash_file_name)
+
+                # search
+                url_search = "https://pan.baidu.com/rest/2.0/xpan/file?method=search&access_token=%s&key=%s&dir=%s" % (
+                    access_token, hash_file_name, upload_root)
+                resp_search = network.request(
+                    "GET", url_search, max_retry=MAX_RETRY, retry_delay=10, headers=headers, data=payload, files=[], proxies=PROXY)
+                logging.info("Search result: %s", resp_search)
+
+                errno = resp_search.get('errno', 0)
+                if errno != 0:
+                    logging.warning("Attr %s, errno %s", attr.id, errno)
+                    continue
+
+                # get fs_id
+                file_list = resp_search.get('list', [])
+                fs_id = -1
+                if len(file_list) == 1:
+                    fs_id = int(file_list[0].get('fs_id', -1))
+                elif len(file_list) > 1:
+                    for f in file_list:
+                        if f.get('server_filename', '') == hash_file_name:
+                            fs_id = int(f.get('fs_id', -1))
+                            break
+                if fs_id == -1:
+                    logging.info("Attr %s, not exist", attr.id)
+                    break
+
+                # add baidunetdisk
+                baidunetdisk = BaiduNetdisk()
+                baidunetdisk.id = attr.id
+                baidunetdisk.attribute = attr.id
+                baidunetdisk.fs_id = fs_id
+                baidunetdisk.id, ok = space.driver.add_baidunetdisk(
+                    baidunetdisk)
+                if not ok:
+                    last_err = "db"
+                    continue
+                space.driver.commit()
+
+                if i % 10 == 0:
+                    space.send_ws(name="baidu", msg_type="fix", status="run", data={
+                        "now": i, "total": attr_len
+                    })
+
+                time.sleep(10)
+
+                # Stop retry
+                retry = 0
+                break
+            if retry >= MAX_RETRY:
+                self.write_json(err=last_err)
+                # return
                 with open("./failed_file.log", 'a+') as fout:
                     fout.write(target_path + '\n')
                 continue

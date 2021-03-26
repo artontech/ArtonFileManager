@@ -66,6 +66,7 @@ const menu = {
   baidunetdisk: "Baidu Netdisk",
   baidumanager: "Baidu Manager",
   baidusync: "Baidu Sync",
+  baidufix: "Baidu Fix",
   dropdown_menu: {
     label1_caption: "Id",
     label2_caption: "Space",
@@ -119,6 +120,14 @@ const baidunetdisk = {
     progress1_caption: "check",
     tooltip2_caption: "upload progress",
     progress2_caption: "upload",
+  },
+  baidufix: {
+    btn1_caption: "Fix",
+    label1_caption: "Progress",
+    tooltip1_caption: "check progress",
+    progress1_caption: "check",
+    tooltip2_caption: "fix progress",
+    progress2_caption: "fix",
   },
 };
 
