@@ -573,27 +573,7 @@ export default {
       };
 
       if (target.type == "file") {
-        const body = {};
-        vm.$http
-          .get(
-            `http://${vm.setting.address}/media/link?wid=${vm.repository.wid}&attribute=${target.attribute}`,
-            body,
-            options
-          )
-          .then(
-            (resp) => {
-              const data = resp.body?.data;
-              if (data && resp.body?.status === "success") {
-                const url = `http://${vm.setting.address}${data.src}`;
-                window.open(url);
-              } else {
-                onError();
-              }
-            },
-            (error) => {
-              onError();
-            }
-          );
+        window.open(`http://${vm.setting.address}/media/link?wid=${vm.repository.wid}&attribute=${target.attribute}&filename=${target.fullname}`);
       } else if (target.type == "dir") {
         vm.$refs.inputBox.initShow(
           vm.$i18n.t("explorer.export.title"),

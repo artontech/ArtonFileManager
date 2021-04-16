@@ -1,5 +1,5 @@
 ''' url '''
-
+from urllib import parse
 
 def url2path(url: str) -> str:
     ''' parse url to path '''
@@ -18,3 +18,6 @@ def extract_host(url: str) -> str:
         host = tmp[1]
     host = host.split("/")[0]
     return host
+
+def encode(url: str) -> str:
+    return parse.quote_plus(url)

@@ -4,7 +4,7 @@ import shutil
 
 from backend.controller.default import DefaultHandler
 from backend.service import workspace
-from backend.util import io
+from backend.util import (io, url)
 
 
 class Link(DefaultHandler):
@@ -21,6 +21,7 @@ class Link(DefaultHandler):
         ''' post '''
         wid = self.get_arg("wid")
         attribute = self.get_arg("attribute")
+        filename = self.get_arg("filename")
 
         # get workspace first
         space = workspace.get_by_id(wid)
@@ -57,5 +58,12 @@ class Link(DefaultHandler):
                 shutil.copy(hash_file_path, tmp_file_path)
 
         # set include_version then browser will use cache
-        self.write_json(status="success", data={
-                        "src": self.static_url(tmp_file_name, include_version=True)})
+        # self.write_json(status="success", data={
+        #                 "src": self.static_url(tmp_file_name, include_version=True)})
+
+        with open(os.path.join('./static', tmp_file_name), 'rb') as f:
+            data = f.read()
+
+            self.set_header('Content-Type', 'application/octet-stream')
+            self.set_header('Content-Disposition', 'attachment; filename=' + url.encode(filename))
+            self.write(data)
