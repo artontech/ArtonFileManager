@@ -350,7 +350,9 @@ export default {
       const vm = this;
 
       // Sending request
-      const body = {};
+      const body = {
+        responseType: 'blob',
+      };
       const onError = () => {
         console.log(`[Error] failed to get thumb ${obj?.fullname}`);
       };
@@ -358,15 +360,14 @@ export default {
         .get(`http://${vm.setting.address}${obj.thumb}`, body, options)
         .then(
           (resp) => {
-            const data = resp.body?.data;
-            if (data && resp.body?.status === "success") {
+            var reader = new FileReader();
+            reader.onload = (e) => {
               obj.thumb_done = true;
               obj.thumb_loading = false;
-              obj.thumb = `http://${vm.setting.address}${data.src}`;
+              obj.thumb = e.target.result;
               vm.data.splice(i, 1, obj);
-            } else {
-              onError();
-            }
+            };
+            reader.readAsDataURL(resp.body);
           },
           (error) => {
             onError();

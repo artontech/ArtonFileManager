@@ -432,7 +432,7 @@ class List(DefaultHandler):
                 obj.icon = self.static_url(io.get_icon_name(
                     obj.ext) + ".png", include_version=False)
                 if show_thumb and io.is_web_img(obj.ext):
-                    obj.thumb = "/media/link?wid=%s&attribute=%s" % (
+                    obj.thumb = "/media/link?wid=%s&attribute=%s&filename=thumb" % (
                         wid, obj.attribute)
 
                 # get attr
