@@ -27,8 +27,6 @@ if not options.__contains__("config_load_flag"):
     define("http_port", default=13310, type=int, help="server port")
     define("db_type", default="mysql", type=str, help="db type")
     define("config_path", default=CONFIG_PATH, type=str, help="config path")
-    define("redis_path", default=os.path.join(
-        BASE_PATH, "./redis"), type=str, help="redis path")
     define("mysql_path", default=os.path.join(
         BASE_PATH, "./mysql"), type=str, help="mysql path")
     define("static_path", default="./static", type=str, help="static path")
@@ -36,7 +34,6 @@ if not options.__contains__("config_load_flag"):
     parse_config_file(CONFIG_FILE)
 
     options.config_path = CONFIG_PATH
-    options.redis_path = os.path.abspath(options.redis_path)
     options.mysql_path = os.path.abspath(options.mysql_path)
     options.static_path = os.path.abspath(options.static_path)
     options.settings = {
