@@ -6,7 +6,9 @@ import json
 import logging
 import os
 import subprocess
+import sys
 import threading
+import time
 
 import pymysql
 
@@ -72,6 +74,7 @@ class MySQLDriver(Driver):
         self.db_name = r"arton_file_manager"
         self.host = None
         self.json_path = os.path.join(workspace, "afm_config.json")
+        self.config_json = {}
         self.options = options
         self.password = None
         self.port = None
@@ -90,9 +93,7 @@ class MySQLDriver(Driver):
 
     def init(self):
         ''' init '''
-        mysql_path = self.options.mysql_path
-        config_path = self.options.config_path
-        logging.info("Init mysql at: %s", mysql_path)
+        logging.info("Init mysql at: %s", self.options.mysql_path)
 
         if os.path.exists(self.json_path):
             logging.warning("Workspace already exist: %s", self.workspace)
@@ -110,7 +111,18 @@ class MySQLDriver(Driver):
 
         os.makedirs(os.path.join(self.workspace, "mysql/data"))
 
+        if sys.platform == 'win32':
+            return self.init_win()
+        elif sys.platform == 'linux':
+            return self.init_docker()
+
+        print("unknown platform", sys.platform)
+        return -1
+
+    def init_win(self):
         # gen config
+        mysql_path = self.options.mysql_path
+        config_path = self.options.config_path
         ini_src_path = os.path.join(config_path, "mysql.windows.ini")
         ini_dst_path = os.path.join(self.workspace, "mysql.windows.ini")
         with open(ini_src_path, "r") as fin:
@@ -132,9 +144,13 @@ class MySQLDriver(Driver):
         ret = subprocess.run(cmd, check=False)
         return ret.returncode
 
+    def init_docker(self):
+        ''' init mysql in docker image '''
+        print("init mysql in linux is not support")
+        return -1
+
     def open(self):
         mysql_path = self.options.mysql_path
-        ini_path = os.path.join(self.workspace, "mysql.windows.ini")
         logging.info("Open mysql at: %s", mysql_path)
 
         # load config
@@ -143,14 +159,24 @@ class MySQLDriver(Driver):
             return -1
         with open(self.json_path, 'r+') as f:
             config_json = json.load(f)
-        last_workspace = config_json.get("workspace", self.workspace)
+            self.config_json = config_json
         self.host = config_json.get("host", "localhost")
         self.user = config_json.get("user", "root")
         self.password = config_json.get("password", "")
         self.database = config_json.get("database", "arton_file_manager")
         self.port = config_json.get("port", 13311)
 
+        if sys.platform == 'win32':
+            return self.open_win()
+        elif sys.platform == 'linux':
+            return self.open_docker()
+
+        print("unknown platform", sys.platform)
+        return -1
+
+    def open_win(self):
         # if workspace changed, fix mysql
+        last_workspace = self.config_json.get("workspace", self.workspace)
         if os.path.abspath(last_workspace) != os.path.abspath(self.workspace):
             logging.info("Workspace changed, fix mysql...")
             mysql_path = os.path.join(self.workspace, "mysql")
@@ -160,6 +186,7 @@ class MySQLDriver(Driver):
                     os.remove(fpath)
 
             # update ini
+            ini_path = os.path.join(self.workspace, "mysql.windows.ini")
             config = configparser.ConfigParser()
             config.read(ini_path)
             mysql_path = mysql_path.replace("\\", "/")  # for mysql
@@ -176,9 +203,9 @@ class MySQLDriver(Driver):
                 config.write(f)
 
             # update workspace to json
-            config_json["workspace"] = self.workspace
+            self.config_json["workspace"] = self.workspace
             with open(self.json_path, 'w+') as f:
-                json.dump(config_json, f)
+                json.dump(self.config_json, f)
 
         cmd = [os.path.join(mysql_path, "mysqld"),
                "--install", "ArtonFileManagerMySQL",
@@ -198,9 +225,42 @@ class MySQLDriver(Driver):
 
         return ret
 
+    def open_docker(self):
+        ''' open mysql in docker image '''
+        conf_path = os.path.join(self.workspace, "mysql.cnf")
+        cmd = [
+            "docker", "run", 
+            "--name", "afm-mysql",
+            "-v", "%s:/data" % (self.workspace),
+            "-v", "%s:/etc/mysql/conf.d/mysql.cnf" % (conf_path),
+            "--user", "1000:1000",
+            "-p", "%s:%s" % (self.port, self.port),
+            "-d", "mysql:8.0"
+            ]
+        ret = subprocess.run(cmd, check=False)
+        if ret.returncode != 0:
+            return ret
+
+        retry = 0
+        while retry < 10:
+            time.sleep(6)
+            if self.open_db() is not None:
+                return ret
+        ret.returncode = -99
+        return ret
+
     def close(self):
         self.close_db()
 
+        if sys.platform == 'win32':
+            return self.close_win()
+        elif sys.platform == 'linux':
+            return self.close_docker()
+
+        print("unknown platform", sys.platform)
+        return False
+
+    def close_win(self):
         result = True
 
         cmd = ["net", "stop", "ArtonFileManagerMySQL"]
@@ -209,6 +269,21 @@ class MySQLDriver(Driver):
             result = False
 
         cmd = ["sc", "delete", "ArtonFileManagerMySQL"]
+        ret = subprocess.run(cmd, check=False)
+        if ret.returncode != 0:
+            result = False
+
+        return result
+    
+    def close_docker(self):
+        result = True
+        
+        cmd = ["docker", "stop", "/afm-mysql"]
+        ret = subprocess.run(cmd, check=False)
+        if ret.returncode != 0:
+            result = False
+
+        cmd = ["docker", "rm", "/afm-mysql"]
         ret = subprocess.run(cmd, check=False)
         if ret.returncode != 0:
             result = False
