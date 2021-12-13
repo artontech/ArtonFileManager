@@ -67,6 +67,8 @@ const menu = {
   baidumanager: "Baidu Manager",
   baidusync: "Baidu Sync",
   baidufix: "Baidu Fix",
+  oss: "OSS",
+  osssync: "OSS Sync",
   dropdown_menu: {
     label1_caption: "Id",
     label2_caption: "Space",
@@ -131,4 +133,15 @@ const baidunetdisk = {
   },
 };
 
-export { all, explorer, menu, repository, setting, websocket, baidunetdisk };
+const oss = {
+  osssync: {
+    btn1_caption: "Sync",
+    label1_caption: "Progress",
+    tooltip1_caption: "check progress",
+    progress1_caption: "check",
+    tooltip2_caption: "upload progress",
+    progress2_caption: "upload",
+  },
+};
+
+export { all, explorer, menu, repository, setting, websocket, baidunetdisk, oss };

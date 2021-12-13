@@ -1,3 +1,5 @@
 /install/installer
 /logs
+*.log
 .vscode
+/backend/failed_file

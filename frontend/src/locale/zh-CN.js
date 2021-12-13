@@ -67,6 +67,8 @@ const menu = {
   baidumanager: "网盘管理",
   baidusync: "网盘同步",
   baidufix: "网盘修复",
+  oss: "阿里云OSS",
+  osssync: "OSS同步",
   dropdown_menu: {
     label1_caption: "编号",
     label2_caption: "占用空间",
@@ -131,4 +133,15 @@ const baidunetdisk = {
   },
 };
 
-export { all, explorer, menu, repository, setting, websocket, baidunetdisk };
+const oss = {
+  osssync: {
+    btn1_caption: "同步",
+    label1_caption: "进度",
+    tooltip1_caption: "检查进度",
+    progress1_caption: "检查",
+    tooltip2_caption: "上传进度",
+    progress2_caption: "上传",
+  },
+};
+
+export { all, explorer, menu, repository, setting, websocket, baidunetdisk, oss };

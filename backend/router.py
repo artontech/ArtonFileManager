@@ -1,7 +1,7 @@
 ''' router '''
 from tornado.web import Application
 
-from backend.controller import dir as cdir, workspace, error, media, tag, attributetag, baidunetdisk
+from backend.controller import dir as cdir, workspace, error, media, tag, attributetag, baidunetdisk, oss
 from backend import config
 
 def make_app():
@@ -38,6 +38,9 @@ def make_app():
         (r"/baidunetdisk/quota", baidunetdisk.Quota, dict(name="get quota")),
         (r"/baidunetdisk/sync", baidunetdisk.Sync, dict(name="sync")),
         (r"/baidunetdisk/fix", baidunetdisk.Fix, dict(name="fix")),
+
+        (r"/oss", oss.OssWebSocket),
+        (r"/oss/sync", oss.Sync, dict(name="sync")),
 
         (r"/", error.NotFound)
     ], **options.settings)

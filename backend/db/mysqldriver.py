@@ -17,7 +17,8 @@ from backend.model.default import DefaultModel
 from backend.model.attribute import (
     Attribute,
     get_attribute_list,
-    union_attribute_baidunetdisk_list
+    union_attribute_baidunetdisk_list,
+    union_attribute_oss_list
 )
 from backend.model.dir import (
     Dir,
@@ -43,6 +44,10 @@ from backend.model.netdisk import (
 from backend.model.baidunetdisk import (
     BaiduNetdisk,
     get_baidunetdisk_list
+)
+from backend.model.oss import (
+    OSS,
+    get_oss_list
 )
 
 
@@ -150,9 +155,6 @@ class MySQLDriver(Driver):
         return -1
 
     def open(self):
-        mysql_path = self.options.mysql_path
-        logging.info("Open mysql at: %s", mysql_path)
-
         # load config
         if not os.path.exists(self.json_path):
             logging.warning("No json config: %s", self.workspace)
@@ -175,6 +177,10 @@ class MySQLDriver(Driver):
         return -1
 
     def open_win(self):
+        mysql_path = self.options.mysql_path
+        ini_path = os.path.join(self.workspace, "mysql.windows.ini")
+        logging.info("Open mysql at: %s", mysql_path)
+
         # if workspace changed, fix mysql
         last_workspace = self.config_json.get("workspace", self.workspace)
         if os.path.abspath(last_workspace) != os.path.abspath(self.workspace):
@@ -186,7 +192,6 @@ class MySQLDriver(Driver):
                     os.remove(fpath)
 
             # update ini
-            ini_path = os.path.join(self.workspace, "mysql.windows.ini")
             config = configparser.ConfigParser()
             config.read(ini_path)
             mysql_path = mysql_path.replace("\\", "/")  # for mysql
@@ -623,6 +628,30 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         return current_id, ok
 
     @mylock
+    def add_oss(self, oss: OSS):
+        ''' add baidu netdisk file info '''
+        current_id = "NULL"
+        ok = False
+
+        if oss.id is None:
+            item_id = "NULL"
+        else:
+            item_id = "'%s'" % oss.id
+
+        sql = "INSERT INTO `%s`.oss (`id`,`attribute`,`path`) VALUES (%s,%d,%s);" % (
+            self.db_name, item_id, oss.attribute, safe(oss.path))
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                current_id = cursor.lastrowid
+                ok = True
+        except Exception as err:
+            logging.warning(sql)
+            self.rollback()
+            raise err
+        return current_id, ok
+
+    @mylock
     def get_files(self, file: File, attr_null: bool = None):
         ''' list files '''
         results = []
@@ -848,6 +877,22 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = union_attribute_baidunetdisk_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    @mylock
+    def union_attribute_oss(self):
+        ''' list oss not uploaded '''
+        results = []
+
+        sql = "SELECT a.id,a.size,a.crc32,a.sha256,b.path FROM `%s`.attribute a LEFT JOIN `%s`.oss b ON a.id=b.attribute WHERE b.attribute is null" % (
+            self.db_name, self.db_name)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = union_attribute_oss_list(cursor.fetchall())
         except Exception as e:
             logging.warning(sql)
             raise e

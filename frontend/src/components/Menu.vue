@@ -10,7 +10,7 @@
     >
         <a-menu
             :default-selected-keys="[]"
-            :default-open-keys="['sub1', 'sub2', 'sub3']"
+            :default-open-keys="['sub1', 'sub2', 'sub3', 'sub4']"
             :selectedKeys="[selected]"
             mode="inline"
             theme="dark"
@@ -56,6 +56,16 @@
                     <a-menu-item key="BaiduFix" v-on:click="go">
                         <a-icon type="tool" />
                         <span>{{$t('menu.baidufix')}}</span>
+                    </a-menu-item>
+                </a-sub-menu>
+                <a-sub-menu key="sub4">
+                    <span slot="title">
+                        <a-icon type="aliyun" />
+                        <span>{{$t('menu.oss')}}</span>
+                    </span>
+                    <a-menu-item key="OssSync" v-on:click="go">
+                        <a-icon type="cloud-sync" />
+                        <span>{{$t('menu.osssync')}}</span>
                     </a-menu-item>
                 </a-sub-menu>
             </a-sub-menu>
