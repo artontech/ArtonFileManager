@@ -77,10 +77,12 @@ class DefaultHandler(RequestHandler):
             # self.write_json(err="miss_arg", data={"name": name})
             raise e
 
-    def write_json(self, status="fail", err="", data=None):
+    def write_json(self, status="fail", err="", data=None, status_code=200):
         ''' write_json '''
         result = {"status": status, "err": err, "data": data}
         self.write(json.dumps(result, cls=jsonencoder.DefaultEncoder))
+        if status_code != 200:
+            self.set_status(status_code, reason=err)
 
 
 class DefaultWSHandler(WebSocketHandler):

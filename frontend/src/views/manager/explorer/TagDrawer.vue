@@ -23,7 +23,17 @@
     </a-select>
 
     <img v-if="target && target.thumb_done" class="image" :alt="target.fullname" :src="target.thumb" @click="show_select=!show_select;" />
-    <img v-else class="image" alt="icon" :src="target ? target.icon : null" @click="show_select=!show_select;" />
+    <a-dropdown v-else class="image" :disabled="downloading">
+      <a-menu slot="overlay" @click="menu1Click">
+        <a-menu-item key="download_baidu">
+          {{$t("explorer.tag_drawer.download_baidu")}}
+        </a-menu-item>
+        <a-menu-item key="download_oss">
+          {{$t("explorer.tag_drawer.download_oss")}}
+        </a-menu-item>
+      </a-menu>
+      <a-button> {{$t("all.download")}} <a-icon type="down" /> </a-button>
+    </a-dropdown>
 
     <!-- Button -->
     <div id="btn-wrapper">
@@ -50,6 +60,7 @@ export default {
       target: null,
       target_id: null,
       type: null,
+      downloading: false,
     };
   },
   beforeMount() {
@@ -208,6 +219,40 @@ export default {
             onError();
           }
         );
+    },
+    menu1Click(e) {
+      const vm = this;
+      vm.downloading = true;
+
+      const body = {
+        wid: vm.repository.wid,
+        attribute: vm.target.attribute,
+      };
+      const onError = () => {
+        vm.downloading = false;
+        console.log(`[Error] failed to download ${body.path}`);
+        vm.$message.error(vm.$i18n.t("explorer.tag_drawer.download_fail"));
+      };
+      switch (e.key) {
+        case "download_baidu":
+          vm.$http
+          .post(`http://${vm.setting.address}/baidunetdisk/download`, body, options)
+          .then(
+            (resp) => {
+              if (resp.body.status === "success") {
+                vm.downloading = false;
+                vm.mod = true;
+                vm.onClose();
+              } else {
+                onError();
+              }
+            },
+            (error) => {
+              onError(error);
+            }
+          );
+          break;
+      }
     },
   },
 };

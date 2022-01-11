@@ -497,3 +497,87 @@ class Fix(DefaultHandler):
         })
         self.write_json(status="success", data=attr_len)
         return
+
+
+class Download(DefaultHandler):
+    ''' download '''
+
+    def data_received(self, chunk):
+        pass
+
+    def get(self):
+        ''' get '''
+        self.post()
+
+    @tornado.gen.coroutine
+    def post(self):
+        ''' post '''
+        wid = self.get_arg("wid")
+        attribute = self.get_arg("attribute")
+
+        # get workspace first
+        space = workspace.get_by_id(wid)
+        if space is None or not space.enabled:
+            self.write_json(err="no_workspace")
+            return
+
+        yield self.download(space, attribute)
+
+    @run_on_executor
+    def download(self, space, attribute):
+        # get netdisk info
+        netdisks = space.driver.get_netdisks(type_name="baidu")
+        if netdisks is None:
+            self.write_json(err="db")
+            return
+        if len(netdisks) < 1:
+            self.write_json(err="no_netdisk")
+            return
+        netdisk_info = netdisks[0]
+
+        if netdisk_info.token_expire is None or \
+                datetime.datetime.now()+datetime.timedelta(hours=8) >= netdisk_info.token_expire:
+            self.write_json(err="token_expire", data=netdisk_info)
+            return
+        access_token = netdisk_info.access_token
+
+        # get baidunetdisks
+        baidunetdisks = space.driver.get_baidunetdisks(attribute=attribute)
+        if baidunetdisks is None or len(baidunetdisks) < 1:
+            self.write_json(err="db")
+            return
+
+        # get meta
+        fs_id = baidunetdisks[0].fs_id
+        headers = {'User-Agent': 'pan.baidu.com'}
+        payload = {}
+        url_meta = "http://pan.baidu.com/rest/2.0/xpan/multimedia?access_token=%s&method=filemetas&fsids=[%s]&dlink=1" % (
+            access_token, fs_id)
+        resp_meta = network.request(
+            "GET", url_meta, max_retry=MAX_RETRY, retry_delay=10, headers=headers, data=payload, files=[], proxies=PROXY)
+        errno = resp_meta.get('errno', 0)
+        logging.info("File meta result: %s", resp_meta)
+        if errno != 0:
+            self.write_json(err="file_meta")
+            return
+
+        # path
+        target_file = resp_meta.get("list")[0]
+        hash_file_path = os.path.join(space.data_path, target_file.get("filename"))
+        payload = {}
+        files = {}
+        headers = {
+            'User-Agent': 'pan.baidu.com'
+        }
+        url_download = "%s&access_token=%s" % (target_file.get("dlink"), access_token)
+        response = requests.request("GET", url_download, headers=headers, data=payload, files=files)
+        if response.status_code != 200 or len(response.content) != int(target_file.get("size")):
+            self.write_json(err="download")
+            logging.error("File length not equals %d,%d: %s",
+                          len(response.content), int(target_file.get("size")), response.text)
+            return
+        with open(hash_file_path, 'wb') as f:
+            f.write(response.content)
+
+        self.write_json(status="success")
+        return

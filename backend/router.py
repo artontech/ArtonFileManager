@@ -38,6 +38,7 @@ def make_app():
         (r"/baidunetdisk/quota", baidunetdisk.Quota, dict(name="get quota")),
         (r"/baidunetdisk/sync", baidunetdisk.Sync, dict(name="sync")),
         (r"/baidunetdisk/fix", baidunetdisk.Fix, dict(name="fix")),
+        (r"/baidunetdisk/download", baidunetdisk.Download, dict(name="download")),
 
         (r"/oss", oss.OssWebSocket),
         (r"/oss/sync", oss.Sync, dict(name="sync")),

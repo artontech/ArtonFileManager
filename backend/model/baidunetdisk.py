@@ -13,8 +13,7 @@ def get_baidunetdisk_list(db_results):
     if db_results is None or len(db_results) <= 0:
         return result
 
-    for i in db_results:
-        row = db_results[i]
+    for row in db_results:
         obj = BaiduNetdisk()
         obj.id = row[0]
         obj.attribute = row[1]

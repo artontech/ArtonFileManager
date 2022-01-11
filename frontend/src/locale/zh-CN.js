@@ -36,6 +36,9 @@ const explorer = {
     label2_caption: "日志",
   },
   tag_drawer: {
+    download_baidu: "从百度网盘下载",
+    download_fail: "下载失败",
+    download_oss: "从OSS下载",
     title: "编辑标签",
     select1_placeholder: "选择或输入标签",
   },

@@ -42,7 +42,7 @@ class Link(DefaultHandler):
         # path
         hash_file_path = os.path.join(space.data_path, hash_file_name)
         if not os.path.exists(hash_file_path):
-            self.write_json(err="no_data", data={"file": hash_file_path})
+            self.write_json(err="no_data", data={"file": hash_file_path}, status_code=404)
             return
         tmp_path = os.path.join(self.options.static_path, "tmp")
         tmp_file_path = os.path.join(tmp_path, full_file_name)

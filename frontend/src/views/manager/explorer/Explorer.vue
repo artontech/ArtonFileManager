@@ -354,7 +354,7 @@ export default {
         responseType: 'blob',
       };
       const onError = () => {
-        console.log(`[Error] failed to get thumb ${obj?.fullname}`);
+        // console.log(`[Error] failed to get thumb ${obj?.fullname}`);
       };
       vm.$http
         .get(`http://${vm.setting.address}${obj.thumb}`, body, options)
@@ -370,7 +370,7 @@ export default {
             reader.readAsDataURL(resp.body);
           },
           (error) => {
-            onError();
+            onError(error);
           }
         );
     },

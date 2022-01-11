@@ -36,6 +36,9 @@ const explorer = {
     label2_caption: "logging",
   },
   tag_drawer: {
+    download_baidu: "Baidu Download",
+    download_fail: "Download failed",
+    download_oss: "OSS Download",
     title: "Edit tag",
     select1_placeholder: "select or input your tag",
   },

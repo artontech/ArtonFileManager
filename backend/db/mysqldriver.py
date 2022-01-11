@@ -248,9 +248,14 @@ class MySQLDriver(Driver):
 
         retry = 0
         while retry < 10:
-            time.sleep(6)
-            if self.open_db() is not None:
-                return ret
+            try:
+                time.sleep(2)
+                if self.open_db() is not None:
+                    return ret
+            except pymysql.err.OperationalError as err:
+                logging.info("retry connecting mysql")
+                if retry >= 9:
+                    raise err
         ret.returncode = -99
         return ret
 
@@ -778,6 +783,56 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = get_attribute_tag_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    @mylock
+    def get_baidunetdisks(self, item_id=None, attribute: int = None):
+        ''' list baidunetdisk '''
+        results = []
+
+        sql_where = ""
+        if item_id is not None:
+            sql_where += " and `id`=%s" % (item_id)
+        if attribute is not None:
+            sql_where += " and `attribute`=%d" % (attribute)
+        sql_where = sql_where.strip().lstrip('and')
+        if sql_where == "":
+            return results
+
+        sql = "SELECT * FROM `%s`.baidunetdisk WHERE %s" % (
+            self.db_name, sql_where)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = get_baidunetdisk_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    @mylock
+    def get_oss(self, item_id=None, attribute: int = None):
+        ''' list oss '''
+        results = []
+
+        sql_where = ""
+        if item_id is not None:
+            sql_where += " and `id`=%s" % (item_id)
+        if attribute is not None:
+            sql_where += " and `attribute`=%d" % (attribute)
+        sql_where = sql_where.strip().lstrip('and')
+        if sql_where == "":
+            return results
+
+        sql = "SELECT * FROM `%s`.oss WHERE %s" % (
+            self.db_name, sql_where)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = get_oss_list(cursor.fetchall())
         except Exception as e:
             logging.warning(sql)
             raise e
