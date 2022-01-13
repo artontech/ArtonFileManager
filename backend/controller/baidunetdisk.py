@@ -563,7 +563,8 @@ class Download(DefaultHandler):
 
         # path
         target_file = resp_meta.get("list")[0]
-        hash_file_path = os.path.join(space.data_path, target_file.get("filename"))
+        filename = "_".join(target_file.get("filename").split('_')[:3])
+        hash_file_path = os.path.join(space.data_path, filename)
         payload = {}
         files = {}
         headers = {

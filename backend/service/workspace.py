@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import sys
 
 from backend import db
 
@@ -21,7 +22,10 @@ class WorkSpace():
         self.ws_list = []
 
         # load json config
-        JSON_PATH = os.path.join(path, "afm_config.json")
+        if sys.platform == 'win32':
+            JSON_PATH = os.path.join(path, "afm_config.json")
+        elif sys.platform == 'linux':
+            JSON_PATH = os.path.join(path, "afm_config_linux.json")
         with open(JSON_PATH, 'r+') as f:
             config_json = json.load(f)
         self.data_path = config_json.get("data_path")

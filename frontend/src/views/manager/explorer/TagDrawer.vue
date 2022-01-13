@@ -1,6 +1,7 @@
 <template>
   <a-drawer
     placement="right"
+    width="60%"
     :closable="true"
     :maskClosable="true"
     :title="$t('explorer.tag_drawer.title')"
@@ -8,19 +9,21 @@
     :after-visible-change="afterVisibleChange"
     @close="onClose"
   >
-    <a-select
-      mode="multiple"
-      v-model="attribute_tag_ids"
-      :style="{ width: '100%', height: '200px' }"
-      :dropdownMatchSelectWidth="false"
-      :placeholder="$t('explorer.tag_drawer.select1_placeholder')"
-      :open="show_select"
-      @change="select1Change"
-    >
-      <a-select-option v-for="tag in tags" :key="tag.id" :value="tag.id">{{
-        `${tag.key}:${tag.value}`
-      }}</a-select-option>
-    </a-select>
+    <div class="select-wrapper">
+      <a-select
+        mode="multiple"
+        v-model="attribute_tag_ids"
+        :style="{ width: '100%' }"
+        :dropdownMatchSelectWidth="false"
+        :placeholder="$t('explorer.tag_drawer.select1_placeholder')"
+        :open="show_select"
+        @change="select1Change"
+      >
+        <a-select-option v-for="tag in tags" :key="tag.id" :value="tag.id">{{
+          `${tag.key}:${tag.value}`
+        }}</a-select-option>
+      </a-select>
+    </div>
 
     <img v-if="target && target.thumb_done" class="image" :alt="target.fullname" :src="target.thumb" @click="show_select=!show_select;" />
     <a-dropdown v-else class="image" :disabled="downloading">
@@ -259,13 +262,27 @@ export default {
 </script>
 
 <style>
+.ant-drawer > .ant-drawer-content-wrapper {
+  min-width: 200px;
+}
+
+.ant-drawer-body {
+  padding: 15px;
+}
+
 .ant-select-selection {
   height: 100%;
 }
 
 .image {
-  margin-top: 25px;
-  max-height: 500px;
-  max-width: 435px;
+  margin-top: 15px;
+  max-height: calc(100vh - 215px);
+  max-width: 100%;
+}
+
+.select-wrapper {
+  width: 100%;
+  max-height: 60px;
+  overflow: auto;
 }
 </style>

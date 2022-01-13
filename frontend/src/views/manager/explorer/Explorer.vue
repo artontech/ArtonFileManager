@@ -135,6 +135,7 @@ const breadcrumb_home = {
   label: "home",
   breadcrumbName: "home",
   children: [],
+  page_no: 1,
 };
 
 export default {
@@ -290,6 +291,7 @@ export default {
       const vm = this;
       vm.page_no = page;
       vm.page_size = pageSize;
+      vm.breadcrumb_flat[vm.breadcrumb_flat.length - 1].page_no = page;
       vm.list();
     },
     mkdir() {
@@ -622,13 +624,6 @@ export default {
         }
       }
       if (target.type == "breadcrumb" || target.type == "dir") {
-        // update current
-        vm.current = target.id;
-        vm.page_no = 1;
-
-        // refresh list
-        vm.list();
-
         // update flat breadcrumb
         if (target.id === 0) {
           vm.breadcrumb_flat = [breadcrumb_home];
@@ -651,9 +646,17 @@ export default {
               type: "breadcrumb",
               label: obj.name,
               breadcrumbName: obj.name + obj.id,
+              page_no: 1,
             });
           }
         }
+
+        // update current
+        vm.current = target.id;
+        vm.page_no = target.page_no ?? 1;
+
+        // refresh list
+        vm.list();
 
         // update breadcrumb
         vm.breadcrumb.splice(0, vm.breadcrumb.length);

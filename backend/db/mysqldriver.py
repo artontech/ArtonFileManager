@@ -78,7 +78,10 @@ class MySQLDriver(Driver):
         self.db = None
         self.db_name = r"arton_file_manager"
         self.host = None
-        self.json_path = os.path.join(workspace, "afm_config.json")
+        if sys.platform == 'win32':
+            self.json_path = os.path.join(workspace, "afm_config.json")
+        elif sys.platform == 'linux':
+            self.json_path = os.path.join(workspace, "afm_config_linux.json")
         self.config_json = {}
         self.options = options
         self.password = None
@@ -233,13 +236,15 @@ class MySQLDriver(Driver):
     def open_docker(self):
         ''' open mysql in docker image '''
         conf_path = os.path.join(self.workspace, "mysql.cnf")
+        os.chmod(conf_path, 0o0644)
         cmd = [
-            "docker", "run", 
+            "docker", "run",
             "--name", "afm-mysql",
             "-v", "%s:/data" % (self.workspace),
-            "-v", "%s:/etc/mysql/conf.d/mysql.cnf" % (conf_path),
+            "-v", "%s:/etc/mysql/conf.d/mysql.cnf:ro" % (conf_path),
             "--user", "1000:1000",
             "-p", "%s:%s" % (self.port, self.port),
+            "-e", "MYSQL_ROOT_PASSWORD=afm_root",
             "-d", "mysql:8.0"
             ]
         ret = subprocess.run(cmd, check=False)
