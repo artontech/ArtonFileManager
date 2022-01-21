@@ -1,7 +1,7 @@
 <template>
   <a-drawer
     placement="right"
-    width="60%"
+    width="80%"
     :closable="true"
     :maskClosable="true"
     :title="$t('explorer.tag_drawer.title')"
@@ -25,8 +25,16 @@
       </a-select>
     </div>
 
-    <img v-if="target && target.thumb_done" class="image" :alt="target.fullname" :src="target.thumb" @click="show_select=!show_select;" />
-    <a-dropdown v-else class="image" :disabled="downloading">
+    <PicViewer
+      ref="picViewer"
+      v-if="target && target.thumb_done"
+      id="pic-viewer"
+      class="pic-viewer"
+      :alt="target.fullname"
+      :src="target.thumb"
+      @click="show_select=!show_select;" 
+    />
+    <a-dropdown v-else class="drop-down" :disabled="downloading">
       <a-menu slot="overlay" @click="menu1Click">
         <a-menu-item key="download_baidu">
           {{$t("explorer.tag_drawer.download_baidu")}}
@@ -37,18 +45,12 @@
       </a-menu>
       <a-button> {{$t("all.download")}} <a-icon type="down" /> </a-button>
     </a-dropdown>
-
-    <!-- Button -->
-    <div id="btn-wrapper">
-      <a-button type="primary" @click="btn1Click">{{
-        $t("all.done")
-      }}</a-button>
-    </div>
   </a-drawer>
 </template>
 
 <script>
 import options from "@/config/request";
+import PicViewer from "./PicViewer";
 
 export default {
   data() {
@@ -76,6 +78,11 @@ export default {
     }
     
     vm.init();
+  },
+  components: {
+    PicViewer,
+  },
+  computed: {
   },
   props: ["visible"],
   methods: {
@@ -124,7 +131,16 @@ export default {
         }
       }
     },
-    afterVisibleChange(val) {},
+    afterVisibleChange(visible) {
+      const vm = this;
+      if (visible) {
+        vm.$nextTick(() => {
+          vm.$refs.picViewer?.init();
+        });
+      } else {
+        vm.$refs.picViewer?.onClose();
+      }
+    },
     onClose() {
       const vm = this;
       vm.show_select = false;
@@ -159,10 +175,6 @@ export default {
         console.log("update select")
       }
       vm.show_select = true;
-    },
-    btn1Click(e) {
-      const vm = this;
-      vm.onClose();
     },
     addAttributeTag(tag_id) {
       const vm = this;
@@ -274,10 +286,14 @@ export default {
   height: 100%;
 }
 
-.image {
+.pic-viewer {
   margin-top: 15px;
-  max-height: calc(100vh - 215px);
-  max-width: 100%;
+  height: calc(100vh - 200px);
+  width: 100%;
+}
+
+.drop-down {
+  margin-top: 15px;
 }
 
 .select-wrapper {
