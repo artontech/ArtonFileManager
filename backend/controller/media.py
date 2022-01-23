@@ -67,3 +67,59 @@ class Link(DefaultHandler):
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename=' + url.encode(filename))
             self.write(data)
+
+class Export(DefaultHandler):
+    ''' export media '''
+
+    def data_received(self, chunk):
+        pass
+
+    def get(self):
+        ''' get '''
+        self.post()
+
+    def post(self):
+        ''' post '''
+        wid = self.get_arg("wid")
+        targets = self.get_arg("targets")
+        export_path = os.path.abspath(self.get_arg("export_path"))
+
+        # get workspace first
+        space = workspace.get_by_id(wid)
+        if space is None or not space.enabled:
+            self.write_json(err="no_workspace")
+            return
+
+        # process
+        for target in targets:
+            if target["type"] != "file":
+                continue
+
+            # get attr
+            attr_list = space.driver.get_attrs(item_id=target["attribute"])
+            if len(attr_list) <= 0:
+                self.write_json(err="no_attr")
+                return
+            attr = attr_list[0]
+            hash_file_name = io.format_file_name(
+                attr.size, attr.crc32, attr.sha256, None)
+
+            # export
+            file_path = os.path.join(export_path, hash_file_name + target["ext"])
+            if os.path.exists(file_path):
+                continue
+
+            # path
+            hash_file_path = os.path.join(space.data_path, hash_file_name)
+            if not os.path.exists(hash_file_path):
+                self.write_json(err="no_data", data={
+                    "file": hash_file_path})
+                return
+
+            # decrypt
+            if attr.encrypt is not None and attr.key is not None:
+                io.decrypt_file_to(hash_file_path, attr.key, file_path)
+            else:
+                shutil.copy(hash_file_path, file_path)
+
+        self.write_json(status="success", data=export_path)

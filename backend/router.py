@@ -23,6 +23,7 @@ def make_app():
         (r"/workspace/close", workspace.Close, dict(name="close")),
 
         (r"/media/link", media.Link, dict(name="get file link")),
+        (r"/media/export", media.Export, dict(name="export media")),
 
         (r"/tag/add", tag.Add, dict(name="add tag")),
         (r"/tag/list", tag.List, dict(name="list tag")),

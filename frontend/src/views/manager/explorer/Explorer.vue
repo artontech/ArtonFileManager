@@ -34,15 +34,24 @@
       <!-- Right buttons -->
       <div class="toolbar-right">
         <transition name="slide-fade">
+          <div v-if="tool_button_visible">
           <a-button
-            v-if="button2_visible"
+            class="tool-button-right"
+            icon="download"
+            type="primary"
+            :loading="btn1_loading"
+            @click="btn3Click"
+            >{{ $t("all.export") }}
+          </a-button>
+          <a-button
             class="tool-button-right"
             icon="delete"
             type="danger"
-            :disabled="!button2_visible"
+            :disabled="!tool_button_visible"
             @click="btn2Click"
             >{{ $t("all.delete") }}</a-button
           >
+          </div>
         </transition>
       </div>
     </div>
@@ -143,7 +152,8 @@ export default {
     return {
       drawer1_visible: false,
       drawer2_visible: false,
-      button2_visible: false,
+      tool_button_visible: false,
+      btn1_loading: false,
       explorer: null,
       repository: null,
       setting: null,
@@ -218,7 +228,7 @@ export default {
       const vm = this;
 
       // disable delete button & clear check
-      vm.button2_visible = false;
+      vm.tool_button_visible = false;
       vm.$refs.fileGrid?.clearCheck();
       vm.$refs.fileList?.clearCheck();
     },
@@ -242,6 +252,59 @@ export default {
       vm.update(types.toString(), ids.toString(), null, null, 1, () => {
         vm.clear();
       });
+    },
+    btn3Click(event) {
+      const vm = this;
+      let targets = [];
+      vm.btn1_loading = true;
+      vm.checked.forEach((s) => {
+        let sp = s.split("-");
+        if (sp[0] != "file") {
+          // TODO: Export dir
+          return;
+        }
+        for (let i = 0; i < vm.data.length; i++) {
+          const target = vm.data[i];
+          if (target.id == sp[1]) {
+            targets.push({
+              attribute: target.attribute,
+              ext: target.ext,
+              id: target.id,
+              type: target.type,
+              name: target.name,
+            });
+            break;
+          }
+        }
+      });
+
+      // Sending request
+      const onError = () => {
+        console.log(`[Error] failed to export`, targets);
+        vm.btn1_loading = false;
+        vm.$message.error(vm.$i18n.t("explorer.export_fail"));
+      };
+      const body = {
+        wid: vm.repository.wid,
+        targets,
+        export_path: vm.setting.exportpath,
+      };
+      vm.$http
+        .post(`http://${vm.setting.address}/media/export`, body, options)
+        .then(
+          (resp) => {
+            const data = resp.body?.data;
+            if (data && resp.body?.status === "success") {
+              vm.btn1_loading = false;
+              vm.$message.success(vm.$i18n.t("explorer.export_done"));
+            } else {
+              onError();
+            }
+          },
+          (error) => {
+            onError();
+          }
+        );
     },
     dirSelectorOK(mode, target, selected_keys) {
       const vm = this;
@@ -331,7 +394,7 @@ export default {
       const vm = this;
 
       // on view switch
-      vm.button2_visible = false;
+      vm.tool_button_visible = false;
       if (vm.file_view == "grid") {
         vm.$refs.fileGrid.clearCheck();
         vm.file_view = "list";
@@ -488,9 +551,9 @@ export default {
       vm.checked = null;
       if (checked.length > 0) {
         vm.checked = checked;
-        vm.button2_visible = true;
+        vm.tool_button_visible = true;
       } else {
-        vm.button2_visible = false;
+        vm.tool_button_visible = false;
       }
     },
     del(target, e) {

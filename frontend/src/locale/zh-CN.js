@@ -1,6 +1,7 @@
 const all = {
   done: "完成",
   import: "导入",
+  export: "导出",
   info: "消息",
   select_all: "全选",
   warning: "警告",
@@ -58,6 +59,8 @@ const explorer = {
     title: "导出到",
     placeholder: "请输入文件夹路径",
   },
+  export_done: "导出成功",
+  export_fail: "导出失败",
 };
 
 const menu = {
@@ -103,6 +106,8 @@ const setting = {
   },
   explorer: {
     checkbox1: "显示图片缩略图",
+    label1: "导出路径：",
+    edit1_placeholder: "导出路径",
   },
 };
 

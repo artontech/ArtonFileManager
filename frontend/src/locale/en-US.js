@@ -1,6 +1,7 @@
 const all = {
   done: "Done",
   import: "Import",
+  export: "Export",
   info: "info",
   select_all: "Select All",
   warning: "warning",
@@ -58,6 +59,8 @@ const explorer = {
     title: "Export to",
     placeholder: "Input target dir path",
   },
+  export_done: "Export succeed",
+  export_fail: "Export failed",
 };
 
 const menu = {
@@ -103,6 +106,8 @@ const setting = {
   },
   explorer: {
     checkbox1: "Show picture preview",
+    label1: "Export path:",
+    edit1_placeholder: "export path",
   },
 };
 

@@ -5,6 +5,7 @@ const setting = {
       delete: false, // Delete file after import done
       encrypt: "AES", // Default encrypt algo
       showthumb: true, // Show pic thumb or not
+      exportpath: "", // Export path
       nocache: undefined, // Nocache content
     },
   },
