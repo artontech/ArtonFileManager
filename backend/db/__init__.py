@@ -6,10 +6,10 @@ options = config.get_options()
 DB_TYPE = options.db_type
 
 
-def new_driver(workspace) -> Driver:
+def new_driver(workspace: str, password: str) -> Driver:
     driver = None
     if DB_TYPE == "mysql":
-        driver = mysqldriver.MySQLDriver(options, workspace)
+        driver = mysqldriver.MySQLDriver(options, workspace, password)
     else:
         print("Db type %s is not supported" % DB_TYPE)
     return driver

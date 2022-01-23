@@ -85,6 +85,10 @@ const repository = {
   edit1_placeholder: "repository path",
   btn1_caption: "Init",
   label1_caption: "Enable",
+  password_input: {
+    title: "Set repository password",
+    placeholder: "Repository password",
+  },
 };
 
 const setting = {

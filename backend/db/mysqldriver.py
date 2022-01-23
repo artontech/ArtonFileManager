@@ -49,6 +49,9 @@ from backend.model.oss import (
     OSS,
     get_oss_list
 )
+from backend.util import (
+    io
+)
 
 
 def safe(data: str, collate: bool = False) -> str:
@@ -73,7 +76,7 @@ def mylock(func):
 class MySQLDriver(Driver):
     ''' MySQLDriver '''
 
-    def __init__(self, options, workspace):
+    def __init__(self, options, workspace: str, password: str=None):
         self.database = None
         self.db = None
         self.db_name = r"arton_file_manager"
@@ -84,7 +87,7 @@ class MySQLDriver(Driver):
             self.json_path = os.path.join(workspace, "afm_config_linux.json")
         self.config_json = {}
         self.options = options
-        self.password = None
+        self.password = password
         self.port = None
         self.user = None
         self.workspace = workspace
@@ -131,23 +134,39 @@ class MySQLDriver(Driver):
         # gen config
         mysql_path = self.options.mysql_path
         config_path = self.options.config_path
+
+        # replace settings content
         ini_src_path = os.path.join(config_path, "mysql.windows.ini")
         ini_dst_path = os.path.join(self.workspace, "mysql.windows.ini")
-        with open(ini_src_path, "r") as fin:
-            ini = fin.read()
-            ini = ini.replace(r"%port%", "13311")
-            ini = ini.replace(
-                r"%workspace%", self.workspace.replace("\\", "/"))
-            ini = ini.replace(r"%mysql%", os.path.dirname(
-                mysql_path).replace("\\", "/"))
-        with open(ini_dst_path, "w+") as fout:
-            fout.write(ini)
+        io.replace_file_content(
+            ini_src_path,
+            ini_dst_path,
+            [
+                (r"%port%", "13311"),
+                (r"%workspace%", self.workspace.replace("\\", "/")),
+                (r"%mysql%", os.path.dirname(mysql_path).replace("\\", "/"))
+            ]
+        )
+
+        # replace sql content
+        sql_db_path = os.path.join(config_path, "%s.sql" % (self.db_name))
+        db_structure = io.read_text_file(sql_db_path)
+        sql_src_path = os.path.join(config_path, "mysql.windows.sql")
+        sql_dst_path = os.path.join(self.workspace, "mysql.windows.sql")
+        io.replace_file_content(
+            sql_src_path,
+            sql_dst_path,
+            [
+                (r"%password%", self.password),
+                (r"%db_name%", self.db_name),
+                (r"%db_structure%", db_structure)
+            ]
+        )
 
         # init service
         cmd = [os.path.join(mysql_path, "mysqld"),
                "--defaults-file=%s" % (ini_dst_path),
-               "--init-file=%s" % os.path.join(config_path,
-                                               "mysql.windows.sql"),
+               "--init-file=%s" % (sql_dst_path),
                "--initialize"]  # --initialize-insecure
         ret = subprocess.run(cmd, check=False)
         return ret.returncode

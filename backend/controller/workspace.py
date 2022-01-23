@@ -36,8 +36,9 @@ class Init(DefaultHandler):
     def post(self):
         ''' post '''
         path = self.get_arg("path")
+        password = self.get_arg("password")
 
-        driver = db.new_driver(path)
+        driver = db.new_driver(path, password)
         ret = driver.init()
         if ret != 0:
             self.write_json(err="init", data={"returncode": ret})

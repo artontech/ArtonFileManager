@@ -31,7 +31,7 @@ class WorkSpace():
         self.data_path = config_json.get("data_path")
         os.makedirs(self.data_path, exist_ok=True)
 
-        self.driver = db.new_driver(path)
+        self.driver = db.new_driver(path, password=None)
         success = self.driver.open()
         if not success:
             self.enabled = False

@@ -1,5 +1,7 @@
 <template>
   <div>
+    <!-- Components -->
+    <InputBox ref="inputBox" />
     <a-row>
       <a-col>
         <a-input
@@ -46,6 +48,9 @@ import options from "@/config/request";
 export default {
   name: "Repository",
   props: {},
+  components: {
+    InputBox: () => import("@/components/InputBox.vue"),
+  },
   data() {
     return {
       repository: null,
@@ -122,42 +127,51 @@ export default {
     btn1Click(event) {
       const vm = this;
 
-      vm.$store.commit("updateRepository", {
-        init: false,
-        path: vm.repository.path
-      });
-      vm.btn1_icon = "";
-      vm.btn1_loading = true;
-      vm.btn1_type = "primary";
-      const body = {
-        path: vm.repository.path
-      };
-      const onError = () => {
-        console.log(`[Error] failed to init workspace ${body.path}`);
-        vm.btn1_disabled = false;
-        vm.btn1_icon = "exclamation-circle";
-        vm.btn1_loading = false;
-        vm.btn1_type = "danger";
-      };
-      vm.$http
-        .post(`http://${vm.setting.address}/workspace/init`, body, options)
-        .then(
-          resp => {
+      vm.$refs.inputBox.initShow(
+        vm.$i18n.t("repository.password_input.title"),
+        vm.$i18n.t("repository.password_input.placeholder"),
+        null,
+        (repo_password) => {
+          // Sending request
+          vm.$store.commit("updateRepository", {
+            init: false,
+            path: vm.repository.path
+          });
+          vm.btn1_icon = "";
+          vm.btn1_loading = true;
+          vm.btn1_type = "primary";
+          const body = {
+            path: vm.repository.path,
+            password: repo_password,
+          };
+          const onError = () => {
+            console.log(`[Error] failed to init workspace ${body.path}`);
+            vm.btn1_disabled = false;
+            vm.btn1_icon = "exclamation-circle";
             vm.btn1_loading = false;
-            if (resp.body.status === "success") {
-              vm.$store.commit("updateRepository", {
-                init: true
-              });
-              vm.btn1_disabled = true;
-              vm.btn1_icon = "check-circle";
-            } else {
-              onError();
-            }
-          },
-          error => {
-            onError();
-          }
-        );
+            vm.btn1_type = "danger";
+          };
+          vm.$http
+            .post(`http://${vm.setting.address}/workspace/init`, body, options)
+            .then(
+              resp => {
+                vm.btn1_loading = false;
+                if (resp.body.status === "success") {
+                  vm.$store.commit("updateRepository", {
+                    init: true
+                  });
+                  vm.btn1_disabled = true;
+                  vm.btn1_icon = "check-circle";
+                } else {
+                  onError();
+                }
+              },
+              error => {
+                onError();
+              }
+            );
+        }
+      );
     }
   }
 };

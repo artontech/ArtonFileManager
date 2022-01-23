@@ -1,12 +1,12 @@
 ''' io '''
-import os
-import shutil
-import base64
-
-from urllib import parse
 from Cryptodome.Cipher import AES
+import base64
+import codecs
 from Cryptodome.Random import get_random_bytes
 import hashlib
+import os
+from urllib import parse
+import shutil
 import zlib
 
 FILE_TYPE_MAP = {
@@ -162,3 +162,15 @@ def decrypt_file_to(path: str, key: str, dst: str):
 
     with open(dst, "wb+") as file_out:
         file_out.write(data)
+
+def read_text_file(path: str) -> str:
+    with codecs.open(path, "r", "utf-8") as fp:
+        return fp.read()
+
+def replace_file_content(src_path: str, dst_path: str, rules: list):
+    ''' replace text file content '''
+    content = read_text_file(src_path)
+    for rule in rules:
+        content = content.replace(*rule)
+    with open(dst_path, "w+") as fp:
+        fp.write(content)

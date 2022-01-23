@@ -85,6 +85,10 @@ const repository = {
   edit1_placeholder: "请填写仓库路径",
   btn1_caption: "创建",
   label1_caption: "启用仓库",
+  password_input: {
+    title: "请设置仓库密码",
+    placeholder: "仓库密码",
+  },
 };
 
 const setting = {
