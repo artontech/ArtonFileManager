@@ -1,6 +1,7 @@
 import logging
 
 from tornado.ioloop import IOLoop
+from tornado.httpserver import HTTPServer
 
 import config
 import router
@@ -11,6 +12,7 @@ if __name__ == "__main__":
     app = router.make_app()
 
     port = options.http_port
-    logging.info("HTTP server start at %d" % (port))
-    app.listen(port)
+    logging.info("HTTP server start at %d", port)
+    server = HTTPServer(app, max_buffer_size=10485760000)
+    server.listen(port)
     IOLoop.current().start()

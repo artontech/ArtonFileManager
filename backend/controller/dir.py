@@ -15,6 +15,20 @@ from backend.service import workspace
 from backend.util import (image, io, string)
 
 
+def get_dir_path(space, dir_id: int):
+    ''' get full dir path '''
+    current = dir_id
+    dir_path = []
+    for _ in range(100):
+        dir_list = space.driver.get_dirs(item_id=current)
+        if len(dir_list) <= 0:
+            break
+        dir_path.insert(0, dir_list[0])
+        current = dir_list[0].parent
+        if not current:
+            break
+    return dir_path
+
 class DirWebSocket(DefaultWSHandler):
     name = "dir"
 
@@ -432,7 +446,7 @@ class List(DefaultHandler):
                 obj.icon = self.static_url(io.get_icon_name(
                     obj.ext) + ".png", include_version=False)
                 if show_thumb and io.is_web_img(obj.ext):
-                    obj.thumb = "/media/link?wid=%s&attribute=%s&filename=thumb" % (
+                    obj.thumb = "/media/link?wid=%s&attribute=%s" % (
                         wid, obj.attribute)
 
                 # get attr

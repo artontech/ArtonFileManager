@@ -1,7 +1,11 @@
 ''' router '''
 from tornado.web import Application
 
-from backend.controller import dir as cdir, workspace, error, media, tag, attributetag, baidunetdisk, oss
+from backend.controller import (
+    dir as cdir,
+    file as cfile,
+    workspace, error, media, tag, attributetag, baidunetdisk, oss
+)
 from backend import config
 
 def make_app():
@@ -16,6 +20,9 @@ def make_app():
         (r"/dir/create", cdir.Create, dict(name="create")),
         (r"/dir/moveto", cdir.MoveTo, dict(name="move to")),
         (r"/dir/update", cdir.Update, dict(name="update")),
+
+        (r"/file/exist", cfile.Exist, dict(name="exist")),
+        (r"/file/upload", cfile.Upload, dict(name="upload")),
 
         (r"/workspace/ping", workspace.Ping, dict(name="ping")),
         (r"/workspace/init", workspace.Init, dict(name="init")),

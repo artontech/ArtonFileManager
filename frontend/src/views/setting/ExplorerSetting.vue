@@ -3,17 +3,25 @@
     <a-row>
       <a-col :span="1"></a-col>
       <a-col :span="20">
-        <a-checkbox
-          v-model="showthumb"
-          @change="checkbox1Change"
-        >{{$t('setting.explorer.checkbox1')}}</a-checkbox>
+        <a-checkbox v-model="showthumb" @change="checkbox1Change">{{
+          $t("setting.explorer.checkbox1")
+        }}</a-checkbox>
       </a-col>
       <a-col :span="1"></a-col>
     </a-row>
-    <a-row :gutter="[0,16]">
+    <a-row>
+      <a-col :span="1"></a-col>
+      <a-col :span="20">
+        <a-checkbox v-model="cachethumb" @change="checkbox2Change">{{
+          $t("setting.explorer.checkbox2")
+        }}</a-checkbox>
+      </a-col>
+      <a-col :span="1"></a-col>
+    </a-row>
+    <a-row :gutter="[0, 16]">
       <a-col :span="1"></a-col>
       <a-col :span="2">
-        <p class="label">{{$t('setting.explorer.label1')}}</p>
+        <p class="label">{{ $t("setting.explorer.label1") }}</p>
       </a-col>
       <a-col :span="20">
         <a-input
@@ -37,6 +45,7 @@ export default {
     return {
       setting: null,
       showthumb: true,
+      cachethumb: false,
       exportpath: "",
     };
   },
@@ -44,18 +53,27 @@ export default {
     const vm = this;
     vm.setting = vm.$store.state.setting;
     vm.showthumb = vm.setting.showthumb;
+    vm.cachethumb = vm.setting.cachethumb;
     vm.exportpath = vm.setting.exportpath;
   },
   methods: {
     checkbox1Change(e) {
       const vm = this;
-      vm.$store.commit("updateSetting", { showthumb: vm.showthumb });
+      vm.$store.commit("updateSetting", {
+        showthumb: vm.showthumb,
+      });
+    },
+    checkbox2Change(e) {
+      const vm = this;
+      vm.$store.commit("updateSetting", {
+        cachethumb: vm.cachethumb,
+      });
     },
     input1Change() {
       const vm = this;
       vm.$store.commit("updateSetting", { exportpath: vm.exportpath });
     },
-  }
+  },
 };
 </script>
 

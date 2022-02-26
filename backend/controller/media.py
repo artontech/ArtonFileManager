@@ -22,6 +22,7 @@ class Link(DefaultHandler):
         wid = self.get_arg("wid")
         attribute = self.get_arg("attribute")
         filename = self.get_arg("filename")
+        cache = self.get_arg("cache", "").lower() == "true"
 
         # get workspace first
         space = workspace.get_by_id(wid)
@@ -44,26 +45,35 @@ class Link(DefaultHandler):
         if not os.path.exists(hash_file_path):
             self.write_json(err="no_data", data={"file": hash_file_path}, status_code=404)
             return
-        tmp_path = os.path.join(self.options.static_path, "tmp")
-        tmp_file_path = os.path.join(tmp_path, full_file_name)
-        tmp_file_name = "tmp/%s" % full_file_name
 
-        # no cache
-        if not os.path.exists(tmp_file_path):
-            # decrypt
-            os.makedirs(tmp_path, exist_ok=True)
+        if cache:
+            tmp_file_path = os.path.join(self.options.tmp_path, full_file_name)
+
+            # no cache
+            if not os.path.exists(tmp_file_path):
+                # decrypt
+                os.makedirs(self.options.tmp_path, exist_ok=True)
+                if attr.encrypt is not None and attr.key is not None:
+                    io.decrypt_file_to(hash_file_path, attr.key, tmp_file_path)
+                else:
+                    shutil.copy(hash_file_path, tmp_file_path)
+
+            # set include_version then browser will use cache
+            # self.write_json(status="success", data={
+            #                 "src": self.static_url(tmp_file_name, include_version=True)})
+
+            with open(tmp_file_path, 'rb') as f:
+                data = f.read()
+
+                self.set_header('Content-Type', 'application/octet-stream')
+                self.set_header('Content-Disposition', 'attachment; filename=' + url.encode(filename))
+                self.write(data)
+        else:
             if attr.encrypt is not None and attr.key is not None:
-                io.decrypt_file_to(hash_file_path, attr.key, tmp_file_path)
+                data = io.decrypt_file(hash_file_path, attr.key)
             else:
-                shutil.copy(hash_file_path, tmp_file_path)
-
-        # set include_version then browser will use cache
-        # self.write_json(status="success", data={
-        #                 "src": self.static_url(tmp_file_name, include_version=True)})
-
-        with open(os.path.join('./static', tmp_file_name), 'rb') as f:
-            data = f.read()
-
+                with open(hash_file_path, 'rb') as f:
+                    data = f.read()
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename=' + url.encode(filename))
             self.write(data)

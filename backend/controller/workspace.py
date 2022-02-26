@@ -96,18 +96,16 @@ class Close(DefaultHandler):
             return
 
         try:
+            # remove temp files
+            if os.path.exists(self.options.tmp_path):
+                shutil.rmtree(self.options.tmp_path)
+
             # stop db
             if not space.driver.close():
                 self.write_json(err="close_fail")
                 return
 
-            # remove temp files
-            tmp_path = os.path.join(self.options.static_path, "tmp")
-            if os.path.exists(tmp_path):
-                shutil.rmtree(tmp_path)
-
             self.write_json(status="success")
         finally:
             workspace.del_by_id(wid)
             workspace.del_by_path(path)
-            

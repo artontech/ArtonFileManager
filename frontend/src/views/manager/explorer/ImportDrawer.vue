@@ -221,6 +221,8 @@ export default {
     onClose() {
       const vm = this;
       vm.$emit("on-close", vm.mod);
+      vm.msg.splice(0, vm.msg.length);
+      vm.path = "";
     },
     btn1Click(e) {
       const vm = this;

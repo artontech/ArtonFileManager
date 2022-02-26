@@ -13,6 +13,12 @@
       :visible="drawer2_visible"
       @on-close="drawer2Close"
     />
+    <UploadDrawer
+      ref="uploadDrawer"
+      :current="current"
+      :visible="drawer3_visible"
+      @on-close="drawer3Close"
+    />
 
     <div class="toolbar">
       <!-- Left buttons -->
@@ -26,6 +32,14 @@
         >
 
         <!-- Upload -->
+        <a-button
+          class="tool-button"
+          icon="upload"
+          type="primary"
+          @click="btn4Click"
+          >{{ $t("all.upload") }}</a-button
+        >
+
         <a-button class="tool-button" icon="folder-add" @click="mkdir">{{
           $t("all.mkdir")
         }}</a-button>
@@ -35,22 +49,22 @@
       <div class="toolbar-right">
         <transition name="slide-fade">
           <div v-if="tool_button_visible">
-          <a-button
-            class="tool-button-right"
-            icon="download"
-            type="primary"
-            :loading="btn1_loading"
-            @click="btn3Click"
-            >{{ $t("all.export") }}
-          </a-button>
-          <a-button
-            class="tool-button-right"
-            icon="delete"
-            type="danger"
-            :disabled="!tool_button_visible"
-            @click="btn2Click"
-            >{{ $t("all.delete") }}</a-button
-          >
+            <a-button
+              class="tool-button-right"
+              icon="download"
+              type="primary"
+              :loading="btn1_loading"
+              @click="btn3Click"
+              >{{ $t("all.export") }}
+            </a-button>
+            <a-button
+              class="tool-button-right"
+              icon="delete"
+              type="danger"
+              :disabled="!tool_button_visible"
+              @click="btn2Click"
+              >{{ $t("all.delete") }}</a-button
+            >
           </div>
         </transition>
       </div>
@@ -152,6 +166,7 @@ export default {
     return {
       drawer1_visible: false,
       drawer2_visible: false,
+      drawer3_visible: false,
       tool_button_visible: false,
       btn1_loading: false,
       explorer: null,
@@ -173,6 +188,7 @@ export default {
     InputBox: () => import("@/components/InputBox.vue"),
     ImportDrawer: () => import("./ImportDrawer"),
     TagDrawer: () => import("./TagDrawer"),
+    UploadDrawer: () => import("./UploadDrawer"),
     FileGrid: () => import("./FileGrid"),
     FileList: () => import("./FileList"),
   },
@@ -306,6 +322,11 @@ export default {
           }
         );
     },
+    btn4Click(event) {
+      const vm = this;
+      vm.$refs.uploadDrawer.init();
+      vm.drawer3_visible = true;
+    },
     dirSelectorOK(mode, target, selected_keys) {
       const vm = this;
       if (!target) return;
@@ -348,6 +369,11 @@ export default {
     drawer2Close(mod) {
       const vm = this;
       vm.drawer2_visible = false;
+      if (mod) vm.list();
+    },
+    drawer3Close(mod) {
+      const vm = this;
+      vm.drawer3_visible = false;
       if (mod) vm.list();
     },
     page1Change(page, pageSize) {
@@ -411,34 +437,6 @@ export default {
     /* * * * * * * * End: Trigger * * * * * * * */
 
     /* * * * * * * * Start: File viewer * * * * * * * */
-    getThumb(i, obj) {
-      const vm = this;
-
-      // Sending request
-      const body = {
-        responseType: 'blob',
-      };
-      const onError = () => {
-        // console.log(`[Error] failed to get thumb ${obj?.fullname}`);
-      };
-      vm.$http
-        .get(`http://${vm.setting.address}${obj.thumb}`, body, options)
-        .then(
-          (resp) => {
-            var reader = new FileReader();
-            reader.onload = (e) => {
-              obj.thumb_done = true;
-              obj.thumb_loading = false;
-              obj.thumb = e.target.result;
-              vm.data.splice(i, 1, obj);
-            };
-            reader.readAsDataURL(resp.body);
-          },
-          (error) => {
-            onError(error);
-          }
-        );
-    },
     list() {
       const vm = this;
 
@@ -481,8 +479,8 @@ export default {
                   // fetch thumb
                   const obj_ord = vm.data.length;
                   if (obj.thumb) {
-                    obj.thumb_loading = true;
-                    vm.getThumb(obj_ord, obj);
+                    obj.thumb = `http://${vm.setting.address}` +
+                      `${obj.thumb}&filename=thumb&cache=${vm.setting.cachethumb}`;
                   }
                 } else {
                   console.log("[Error] unknown type", obj);
@@ -588,9 +586,9 @@ export default {
                   item.type == "file" ? (
                     <div>
                       <p>
-                        {`${vm.$i18n.t(
-                          "menu.dropdown_menu.label1_caption"
-                        )}: ${item.id}`}
+                        {`${vm.$i18n.t("menu.dropdown_menu.label1_caption")}: ${
+                          item.id
+                        }`}
                       </p>
                       <p>
                         {`${vm.$i18n.t(
@@ -601,9 +599,9 @@ export default {
                   ) : (
                     <div>
                       <p>
-                        {`${vm.$i18n.t(
-                          "menu.dropdown_menu.label1_caption"
-                        )}: ${item.id}`}
+                        {`${vm.$i18n.t("menu.dropdown_menu.label1_caption")}: ${
+                          item.id
+                        }`}
                       </p>
                       <p>
                         {`${vm.$i18n.t(
@@ -639,7 +637,11 @@ export default {
       };
 
       if (target.type == "file") {
-        window.open(`http://${vm.setting.address}/media/link?wid=${vm.repository.wid}&attribute=${target.attribute}&filename=${target.fullname}`);
+        window.open(
+          `http://${vm.setting.address}/media/link` +
+          `?wid=${vm.repository.wid}&attribute=${target.attribute}` +
+          `&filename=${target.fullname}&cache=${vm.setting.cachethumb}`
+        );
       } else if (target.type == "dir") {
         vm.$refs.inputBox.initShow(
           vm.$i18n.t("explorer.export.title"),

@@ -30,12 +30,14 @@ if not options.__contains__("config_load_flag"):
     define("mysql_path", default=os.path.join(
         BASE_PATH, "./mysql"), type=str, help="mysql path")
     define("static_path", default="./static", type=str, help="static path")
+    define("tmp_path", default="./static/tmp", type=str, help="tmp path")
     define("settings", default={}, type=dict, help="application settings")
     parse_config_file(CONFIG_FILE)
 
     options.config_path = CONFIG_PATH
     options.mysql_path = os.path.abspath(options.mysql_path)
     options.static_path = os.path.abspath(options.static_path)
+    options.tmp_path = os.path.abspath(options.tmp_path)
     options.settings = {
         "static_path": options.static_path,
         "static_url_prefix": "/static/",

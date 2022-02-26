@@ -6,7 +6,8 @@
         :indeterminate="indeterminate"
         :checked="checkAll"
         @change="onCheckAllChange"
-      >{{$t('all.select_all')}}</a-checkbox>
+        >{{ $t("all.select_all") }}</a-checkbox
+      >
     </div>
     <a-divider />
 
@@ -21,9 +22,17 @@
           :key="`${item.type}-${item.id}`"
           @dblclick="goto(item, $event)"
         >
-          <a-checkbox slot="title" :value="`${item.type}-${item.id}`" @change="checkChange">
-            <a-tooltip v-if="item.fullname!=item.title" :title="item.fullname">{{item.title}}</a-tooltip>
-            <span v-else>{{item.title}}</span>
+          <a-checkbox
+            slot="title"
+            :value="`${item.type}-${item.id}`"
+            @change="checkChange"
+          >
+            <a-tooltip
+              v-if="item.fullname != item.title"
+              :title="item.fullname"
+              >{{ item.title }}</a-tooltip
+            >
+            <span v-else>{{ item.title }}</span>
           </a-checkbox>
 
           <!-- Main dropdown menu -->
@@ -39,8 +48,21 @@
             @rename="rename"
           >
             <!-- Image -->
-            <img v-if="item.thumb_done" class="grid-thumb" :alt="item.fullname" :src="item.thumb" />
-            <img v-else class="grid-icon" :alt="item.fullname" :src="item.icon" />
+            <div>
+              <img
+                v-show="item.thumb_done"
+                class="grid-thumb"
+                :alt="item.fullname"
+                :src="item.thumb"
+                @load="onLoad(item)"
+              />
+              <img
+                v-if="!item.thumb_done"
+                class="grid-icon"
+                :alt="item.fullname"
+                :src="item.icon"
+              />
+            </div>
           </DropdownMenu>
 
           <!-- Secondary dropdown menu -->
@@ -73,14 +95,14 @@ export default {
       checkAll: false,
       checkedList: defaultCheckedList,
       indeterminate: false,
-      lastShiftValue: undefined
+      lastShiftValue: undefined,
     };
   },
   beforeMount() {
     const vm = this;
   },
   components: {
-    DropdownMenu: () => import("@/components/DropdownMenu.vue")
+    DropdownMenu: () => import("@/components/DropdownMenu.vue"),
   },
   computed: {},
   props: ["data"],
@@ -111,7 +133,7 @@ export default {
       vm.checkedList.splice(0, vm.checkedList.length);
       Object.assign(vm, {
         indeterminate: false,
-        checkAll: false
+        checkAll: false,
       });
     },
     onCheckAllChange(e) {
@@ -124,11 +146,14 @@ export default {
       }
       Object.assign(vm, {
         indeterminate: false,
-        checkAll: e.target.checked
+        checkAll: e.target.checked,
       });
 
       // emit
       vm.$emit("check", vm.checkedList, e);
+    },
+    onLoad(item) {
+      item.thumb_done = true;
     },
     checkChange(e) {
       const vm = this;
@@ -163,19 +188,19 @@ export default {
 
       // update status
       vm.checkedList.splice(0, vm.checkedList.length);
-      checkedSet.forEach(value => {
+      checkedSet.forEach((value) => {
         vm.checkedList.push(value);
       });
       const length = vm.checkedList.length;
       Object.assign(vm, {
         indeterminate: 0 < length && length < vm.data.length,
-        checkAll: length === vm.data.length
+        checkAll: length === vm.data.length,
       });
 
       // emit
       vm.$emit("check", vm.checkedList, e);
-    }
-  }
+    },
+  },
 };
 </script>
 

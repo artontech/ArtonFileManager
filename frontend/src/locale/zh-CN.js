@@ -6,6 +6,7 @@ const all = {
   select_all: "全选",
   warning: "警告",
   download: "下载",
+  upload: "上传",
   tag: "标签",
   add: "添加",
   open: "打开",
@@ -23,6 +24,7 @@ const all = {
   move_to: "移动到",
   delete: "删除",
   rename: "重命名",
+  clear: "清空",
 };
 
 const explorer = {
@@ -42,6 +44,18 @@ const explorer = {
     download_oss: "从OSS下载",
     title: "编辑标签",
     select1_placeholder: "选择或输入标签",
+  },
+  upload_drawer: {
+    title: "上传文件",
+    label1_caption: "文件列表",
+    btn3_caption: "清空重复",
+    table1: {
+      name: "文件名",
+      dup: "文件重复",
+      action: "操作",
+    },
+    upload_hint: "支持单文件及批量上传",
+    upload_text: "把文件拖入此区域，或点击进行上传",
   },
   file_list: {},
   dir_input: {
@@ -106,6 +120,7 @@ const setting = {
   },
   explorer: {
     checkbox1: "显示图片缩略图",
+    checkbox2: "缓存图片",
     label1: "导出路径：",
     edit1_placeholder: "导出路径",
   },

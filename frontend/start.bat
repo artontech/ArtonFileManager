@@ -1,1 +1,2 @@
-vue ui
+yarn run serve
+pause

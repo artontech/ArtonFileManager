@@ -150,7 +150,7 @@ def encrypt_data_to(f: bytes, key: str, dst: str):
         for x in (cipher.nonce, tag, ciphertext):
             file_out.write(x)
 
-def decrypt_file_to(path: str, key: str, dst: str):
+def decrypt_file(path: str, key: str):
     ''' AES decrypt '''
     key_bytes = decode_key(key)
 
@@ -159,6 +159,12 @@ def decrypt_file_to(path: str, key: str, dst: str):
 
     cipher = AES.new(key_bytes, AES.MODE_EAX, nonce)
     data = cipher.decrypt_and_verify(ciphertext, tag)
+
+    return data
+
+def decrypt_file_to(path: str, key: str, dst: str):
+    ''' AES decrypt '''
+    data = decrypt_file(path, key)
 
     with open(dst, "wb+") as file_out:
         file_out.write(data)

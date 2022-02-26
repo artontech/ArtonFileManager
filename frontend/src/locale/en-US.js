@@ -6,6 +6,7 @@ const all = {
   select_all: "Select All",
   warning: "warning",
   download: "Downlaod",
+  upload: "Upload",
   tag: "Tag",
   add: "Add",
   open: "Open",
@@ -23,6 +24,7 @@ const all = {
   move_to: "Move to",
   delete: "Delete",
   rename: "Rename",
+  clear: "Clear",
 };
 
 const explorer = {
@@ -42,6 +44,18 @@ const explorer = {
     download_oss: "OSS Download",
     title: "Edit tag",
     select1_placeholder: "select or input your tag",
+  },
+  upload_drawer: {
+    title: "Upload file",
+    label1_caption: "File list",
+    btn3_caption: "Clear duplicated",
+    table1: {
+      name: "File name",
+      dup: "Dup file",
+      action: "Action",
+    },
+    upload_hint: "Support for a single or bulk upload.",
+    upload_text: "Click or drag file to this area to upload",
   },
   file_list: {},
   dir_input: {
@@ -106,6 +120,7 @@ const setting = {
   },
   explorer: {
     checkbox1: "Show picture preview",
+    checkbox2: "Cache picture",
     label1: "Export path:",
     edit1_placeholder: "export path",
   },

@@ -26,13 +26,21 @@
           @rename="rename"
         >
           <!-- Image -->
-          <img
-            v-if="item.thumb_done"
-            class="list-thumb"
-            :alt="item.fullname"
-            :src="item.thumb"
-          />
-          <img v-else class="list-icon" :alt="item.fullname" :src="item.icon" />
+          <div>
+            <img
+              v-show="item.thumb_done"
+              class="list-thumb"
+              :alt="item.fullname"
+              :src="item.thumb"
+              @load="onLoad(item)"
+            />
+            <img
+              v-if="!item.thumb_done"
+              class="list-icon"
+              :alt="item.fullname"
+              :src="item.icon"
+            />
+          </div>
         </DropdownMenu>
       </span>
 
@@ -145,6 +153,9 @@ export default {
     },
     moveto(target, event) {
       this.$emit("moveto", target, event);
+    },
+    onLoad(item) {
+      item.thumb_done = true;
     },
     rename(target, event) {
       this.$emit("rename", target, event);
