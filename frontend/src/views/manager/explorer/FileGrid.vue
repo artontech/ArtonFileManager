@@ -52,6 +52,7 @@
               <img
                 v-show="item.thumb_done"
                 class="grid-thumb"
+                :key="`${item.fullname}${Math.random()}`"
                 :alt="item.fullname"
                 :src="item.thumb"
                 @load="onLoad(item)"
