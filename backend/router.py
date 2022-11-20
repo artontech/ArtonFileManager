@@ -4,7 +4,7 @@ from tornado.web import Application
 from backend.controller import (
     dir as cdir,
     file as cfile,
-    workspace, error, media, tag, attributetag, baidunetdisk, oss
+    workspace, error, media, tag, attributetag, baidunetdisk, backup, check, oss
 )
 from backend import config
 
@@ -50,6 +50,12 @@ def make_app():
 
         (r"/oss", oss.OssWebSocket),
         (r"/oss/sync", oss.Sync, dict(name="sync")),
+
+        (r"/backup", backup.BackupWebSocket),
+        (r"/backup/copy", backup.Copy, dict(name="copy")),
+
+        (r"/check", check.CheckWebSocket),
+        (r"/check/check", check.Check, dict(name="check")),
 
         (r"/", error.NotFound)
     ], **options.settings)

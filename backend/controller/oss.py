@@ -11,7 +11,7 @@ from tornado.concurrent import run_on_executor
 from backend.controller.default import (DefaultHandler, DefaultWSHandler)
 from backend.model.oss import OSS
 from backend.service import workspace
-from backend.util import io
+from backend.util import fileio
 
 MAX_RETRY = 3
 OSS_MULTIPART_THRESHOLD = 10 * 1024 * 1024
@@ -108,7 +108,7 @@ class Sync(DefaultHandler):
                     time.sleep(36)
                 retry += 1
                 attr = attrs[i]
-                hash_file_name = io.format_file_name(
+                hash_file_name = fileio.format_file_name(
                     attr.size, attr.crc32, attr.sha256, None)
                 target_path = os.path.abspath(
                     os.path.join(space.data_path, hash_file_name))

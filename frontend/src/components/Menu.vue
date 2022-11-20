@@ -34,6 +34,14 @@
                     <a-icon type="file" />
                     <span>{{$t('menu.explorer')}}</span>
                 </a-menu-item>
+                <a-menu-item key="Backup" v-on:click="go">
+                    <a-icon type="copy" />
+                    <span>{{$t('menu.backup')}}</span>
+                </a-menu-item>
+                <a-menu-item key="Check" v-on:click="go">
+                    <a-icon type="check-circle" />
+                    <span>{{$t('menu.check')}}</span>
+                </a-menu-item>
             </a-sub-menu>
             <a-sub-menu key="sub2">
                 <span slot="title">

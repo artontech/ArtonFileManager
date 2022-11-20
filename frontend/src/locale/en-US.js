@@ -20,6 +20,8 @@ const all = {
   mkdir: "Create Dir",
   ok: "OK",
   cancel: "Cancel",
+  canceling: "Canceling",
+  canceled: "Canceled",
   root_dir: "Root",
   move_to: "Move to",
   delete: "Delete",
@@ -82,6 +84,8 @@ const menu = {
   manager: "Manager",
   repository: "Repository",
   explorer: "Explorer",
+  backup: "Backup",
+  check: "Check",
   netdisk: "Netdisk",
   baidunetdisk: "Baidu Netdisk",
   baidumanager: "Baidu Manager",
@@ -95,6 +99,28 @@ const menu = {
     label3_caption: "Files",
     label4_caption: "Directories",
   },
+};
+
+const backup = {
+  btn1_caption: "Backup",
+  edit1_placeholder: "backup path",
+  label1_caption: "Progress",
+  label2_caption: "Log",
+  tooltip1_caption: "check progress",
+  progress1_caption: "check",
+  tooltip2_caption: "backup progress",
+  progress2_caption: "backup",
+};
+
+const check = {
+  btn1_caption: "Check",
+  label1_caption: "Progress",
+  label2_caption: "Log",
+  tooltip1_caption: "prepare progress",
+  progress1_caption: "prepare",
+  tooltip2_caption: "check progress",
+  progress2_caption: "check",
+  no_check_date: "Please select a date",
 };
 
 const repository = {
@@ -171,4 +197,4 @@ const oss = {
   },
 };
 
-export { all, explorer, menu, repository, setting, websocket, baidunetdisk, oss };
+export { all, explorer, menu, backup, check, repository, setting, websocket, baidunetdisk, oss };

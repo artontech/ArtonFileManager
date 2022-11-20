@@ -15,6 +15,16 @@ const routes = [
     component: () => import("../views/manager/explorer/Explorer.vue"),
   },
   {
+    path: "/backup",
+    name: "Backup",
+    component: () => import("../views/manager/Backup.vue"),
+  },
+  {
+    path: "/check",
+    name: "Check",
+    component: () => import("../views/manager/Check.vue"),
+  },
+  {
     path: "/repository",
     name: "Repository",
     component: () => import("../views/manager/repository/Repository.vue"),

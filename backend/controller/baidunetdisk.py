@@ -12,7 +12,7 @@ from tornado.concurrent import run_on_executor
 from backend.controller.default import (DefaultHandler, DefaultWSHandler)
 from backend.model.baidunetdisk import BaiduNetdisk
 from backend.service import workspace
-from backend.util import (io, network)
+from backend.util import (fileio, network)
 
 USE_LOGIC_DELETE = True
 MAX_RETRY = 1
@@ -266,7 +266,7 @@ class Sync(DefaultHandler):
                     time.sleep(36)
                 retry += 1
                 attr = attrs[i]
-                hash_file_name = io.format_file_name(
+                hash_file_name = fileio.format_file_name(
                     attr.size, attr.crc32, attr.sha256, None)
                 target_path = os.path.abspath(
                     os.path.join(space.data_path, hash_file_name))
@@ -280,12 +280,12 @@ class Sync(DefaultHandler):
                 for j in range(int(file_size / block_size)+1):
                     block = file_data[j*block_size:j*block_size+block_size]
                     blocks.append(block)
-                    blocks_md5.append(str(io.get_md5(block)))
+                    blocks_md5.append(str(fileio.get_md5(block)))
                 payload['path'] = upload_path
                 payload['size'] = str(file_size)
                 payload['block_list'] = json.dumps(blocks_md5)
-                payload['content-md5'] = str(io.get_md5(file_data))
-                payload['slice-md5'] = str(io.get_md5(file_data[:262144]))
+                payload['content-md5'] = str(fileio.get_md5(file_data))
+                payload['slice-md5'] = str(fileio.get_md5(file_data[:262144]))
                 logging.info(
                     "Attr %s, Retry %d, Pre-upload payload: %s", attr.id, retry, payload)
 
@@ -429,7 +429,7 @@ class Fix(DefaultHandler):
                     time.sleep(36)
                 retry += 1
                 attr = attrs[i]
-                hash_file_name = io.format_file_name(
+                hash_file_name = fileio.format_file_name(
                     attr.size, attr.crc32, attr.sha256, None)
                 target_path = os.path.abspath(
                     os.path.join(space.data_path, hash_file_name))

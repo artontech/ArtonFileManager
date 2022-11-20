@@ -1,13 +1,14 @@
 ''' io '''
-from Cryptodome.Cipher import AES
 import base64
 import codecs
-from Cryptodome.Random import get_random_bytes
 import hashlib
+import io
 import os
-from urllib import parse
 import shutil
 import zlib
+from urllib import parse
+from Cryptodome.Cipher import AES
+from Cryptodome.Random import get_random_bytes
 
 FILE_TYPE_MAP = {
 # Image format
@@ -84,7 +85,7 @@ def get_dir_size(path: str):
     ''' get dir size '''
     if os.path.isdir(path):
         sumsize = 0
-        for root, dirs, files in os.walk(path):
+        for root, _, files in os.walk(path):
             for f in files:
                 size = os.path.getsize(os.path.join(root, f))
                 sumsize += size
@@ -98,21 +99,41 @@ def get_size(path: str):
         return os.path.getsize(path)
     else:
         return get_dir_size(path)
-    return None
 
 
-def get_sha_256(f: bytes):
+def get_sha_256(data: bytes):
     ''' SHA-256 '''
-    return hashlib.sha256(f).hexdigest()
+    return hashlib.sha256(data).hexdigest()
 
 
-def get_md5(f: bytes):
+def get_md5(data: bytes):
     ''' MD5 '''
-    return hashlib.md5(f).hexdigest()
+    return hashlib.md5(data).hexdigest()
 
-def get_crc_32(f: bytes):
+def get_crc_32(data: bytes):
     ''' CRC-32 '''
-    return zlib.crc32(f)
+    chunk_size = 1024 * 1024
+    chunk_start = 0
+    crc = 0
+    data_len = len(data)
+
+    while chunk_start < data_len:
+        chunk_next = chunk_start + chunk_size
+        crc = zlib.crc32(data[chunk_start:chunk_next], crc)
+        chunk_start = chunk_next
+    return crc
+
+def get_file_crc_32(path: str):
+    ''' CRC-32 '''
+    chunk_size = 1024 * 1024
+    crc = 0
+
+    with open(path, "rb") as fp:
+        while True:
+            buffer = fp.read(chunk_size)
+            if len(buffer) <= 0:
+                return crc
+            crc = zlib.crc32(buffer, crc)
 
 def format_file_name(size: int, crc32: int, sha256: str, ext: str):
     if size is None:
@@ -133,22 +154,41 @@ def copyfile(src: str, dst: str):
     ''' copy file '''
     shutil.copyfile(src, dst)
 
-def random_key(len: int) -> str:
-    return parse.quote(base64.b64encode(get_random_bytes(len)))
+def random_key(key_len: int) -> str:
+    return parse.quote(base64.b64encode(get_random_bytes(key_len)))
 
 def decode_key(key: str) -> str:
     return base64.b64decode(parse.unquote(key))
 
-def encrypt_data_to(f: bytes, key: str, dst: str):
+def encrypt_data_to(data: bytes, key: str, dst: str, calc_crc_in=False, calc_crc_out=False):
     ''' AES encrypt '''
-    key_bytes = decode_key(key)
+    chunk_size = 10240 * AES.block_size
+    chunk_start = 0
+    crc32_in = 0
+    crc32_out = 0
 
+    key_bytes = decode_key(key)
     cipher = AES.new(key_bytes, AES.MODE_EAX)
-    ciphertext, tag = cipher.encrypt_and_digest(f)
 
     with open(dst, "wb+") as file_out:
-        for x in (cipher.nonce, tag, ciphertext):
-            file_out.write(x)
+        tag = bytes(AES.block_size)
+        file_out.write(cipher.nonce)
+        file_out.write(tag) # Placeholder
+        crc32_out = zlib.crc32(tag, zlib.crc32(cipher.nonce, crc32_out))
+
+        while True:
+            chunk_next = chunk_start + chunk_size
+            chunk_in = data[chunk_start:chunk_next]
+            chunk_out = cipher.encrypt(chunk_in)
+            if len(chunk_out) == 0:
+                break
+            if calc_crc_in:
+                crc32_in = zlib.crc32(chunk_in, crc32_in)
+            if calc_crc_out:
+                crc32_out = zlib.crc32(chunk_out, crc32_out)
+            file_out.write(chunk_out)
+            chunk_start = chunk_next
+    return crc32_in, crc32_out
 
 def decrypt_file(path: str, key: str):
     ''' AES decrypt '''
@@ -162,12 +202,46 @@ def decrypt_file(path: str, key: str):
 
     return data
 
+def decrypt_file_stream(path: str, key: str, file_out: io.FileIO = None, calc_crc_in=False, calc_crc_out=False):
+    ''' AES decrypt with crc32 checksum '''
+    buffer = bytearray()
+    def write_buffer(data: bytes):
+        ''' Write chunk to buffer '''
+        buffer.extend(data)
+    def write_file(data: bytes):
+        ''' Write chunk to file '''
+        file_out.write(data)
+        file_out.flush()
+    writer = write_file if file_out else write_buffer
+    chunk_size = 10240 * AES.block_size
+    key_bytes = decode_key(key)
+    crc32_in = 0
+    crc32_out = 0
+
+    with open(path, "rb") as file_in:
+        nonce = file_in.read(AES.block_size)
+        tag = file_in.read(AES.block_size) # TODO: tag check
+        crc32_in = zlib.crc32(tag, zlib.crc32(nonce, crc32_in))
+
+        cipher = AES.new(key_bytes, AES.MODE_EAX, nonce)
+
+        while True:
+            chunk_in = file_in.read(chunk_size)
+            chunk_out = cipher.decrypt(chunk_in)
+            if len(chunk_out) == 0:
+                break
+            if calc_crc_in:
+                crc32_in = zlib.crc32(chunk_in, crc32_in)
+            if calc_crc_out:
+                crc32_out = zlib.crc32(chunk_out, crc32_out)
+            writer(chunk_out)
+
+    return bytes(buffer), crc32_in, crc32_out
+
 def decrypt_file_to(path: str, key: str, dst: str):
     ''' AES decrypt '''
-    data = decrypt_file(path, key)
-
     with open(dst, "wb+") as file_out:
-        file_out.write(data)
+        decrypt_file_stream(path, key, file_out=file_out)
 
 def read_text_file(path: str) -> str:
     with codecs.open(path, "r", "utf-8") as fp:

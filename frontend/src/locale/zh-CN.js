@@ -20,6 +20,8 @@ const all = {
   mkdir: "新建文件夹",
   ok: "确认",
   cancel: "取消",
+  canceling: "取消中",
+  canceled: "已取消",
   root_dir: "根目录",
   move_to: "移动到",
   delete: "删除",
@@ -82,6 +84,8 @@ const menu = {
   manager: "文件资源管理器",
   repository: "管理仓库",
   explorer: "浏览文件",
+  backup: "备份文件",
+  check: "校验文件",
   netdisk: "网盘",
   baidunetdisk: "百度网盘",
   baidumanager: "网盘管理",
@@ -95,6 +99,28 @@ const menu = {
     label3_caption: "文件数",
     label4_caption: "文件夹数",
   },
+};
+
+const backup = {
+  btn1_caption: "备份",
+  edit1_placeholder: "请填写备份路径",
+  label1_caption: "进度",
+  label2_caption: "日志",
+  tooltip1_caption: "检查进度",
+  progress1_caption: "检查",
+  tooltip2_caption: "备份进度",
+  progress2_caption: "备份",
+};
+
+const check = {
+  btn1_caption: "校验",
+  label1_caption: "进度",
+  label2_caption: "日志",
+  tooltip1_caption: "检查进度",
+  progress1_caption: "检查",
+  tooltip2_caption: "校验进度",
+  progress2_caption: "校验",
+  no_check_date: "请选择校验日期",
 };
 
 const repository = {
@@ -171,4 +197,4 @@ const oss = {
   },
 };
 
-export { all, explorer, menu, repository, setting, websocket, baidunetdisk, oss };
+export { all, explorer, menu, backup, check, repository, setting, websocket, baidunetdisk, oss };

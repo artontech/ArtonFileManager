@@ -12,7 +12,7 @@ from backend.model.attribute import Attribute
 from backend.model.dir import Dir
 from backend.model.file import File
 from backend.service import workspace
-from backend.util import (image, io, string)
+from backend.util import (fileio, image, string)
 
 
 def get_dir_path(space, dir_id: int):
@@ -203,12 +203,12 @@ class Import(DefaultHandler):
             # open file & find dup CRC & SHA
             with open(file_path, "rb") as f:
                 file_data = f.read()
-            file_size = io.get_file_size(file_path)
-            file_crc32 = io.get_crc_32(file_data)
-            file_sha256 = io.get_sha_256(file_data)
+            file_size = fileio.get_file_size(file_path)
+            file_crc32 = fileio.get_crc_32(file_data)
+            file_sha256 = fileio.get_sha_256(file_data)
 
             # if attr exist
-            hash_file_name = io.format_file_name(
+            hash_file_name = fileio.format_file_name(
                 file_size, file_crc32, file_sha256, None)
             move_file_ok = True
             attr_list = space.driver.get_attrs(
@@ -235,10 +235,10 @@ class Import(DefaultHandler):
                 attr.sha256 = file_sha256
                 attr.ext = file_ext
                 attr.encrypt = encrypt
-                attr.key = io.random_key(32)
+                attr.key = fileio.random_key(32)
 
                 # load image info
-                if io.is_cv_support(attr.ext):
+                if fileio.is_cv_support(attr.ext):
                     try:
                         img = image.parse_image(file_data)
                         attr.height = img.shape[0]
@@ -269,7 +269,7 @@ class Import(DefaultHandler):
                     shutil.copy(new_file_path, bak_file_path)
                 try:
                     if attr.encrypt is not None:
-                        io.encrypt_data_to(
+                        fileio.encrypt_data_to(
                             file_data, attr.key, new_file_path)
                         if delete:
                             os.remove(file_path)
@@ -371,7 +371,7 @@ class Export(DefaultHandler):
                         self.write_json(err="no_attr")
                         return
                     attr = attr_list[0]
-                    hash_file_name = io.format_file_name(
+                    hash_file_name = fileio.format_file_name(
                         attr.size, attr.crc32, attr.sha256, None)
 
                     # path
@@ -384,7 +384,7 @@ class Export(DefaultHandler):
 
                     # decrypt
                     if attr.encrypt is not None and attr.key is not None:
-                        io.decrypt_file_to(hash_file_path, attr.key, file_path)
+                        fileio.decrypt_file_to(hash_file_path, attr.key, file_path)
                     else:
                         shutil.copy(hash_file_path, file_path)
 
@@ -443,9 +443,9 @@ class List(DefaultHandler):
                 obj.tags = space.driver.union_attribute_tags(
                     target=obj.id, type_id=2)
             elif obj.type == "file":
-                obj.icon = self.static_url(io.get_icon_name(
+                obj.icon = self.static_url(fileio.get_icon_name(
                     obj.ext) + ".png", include_version=False)
-                if show_thumb and io.is_web_img(obj.ext):
+                if show_thumb and fileio.is_web_img(obj.ext):
                     obj.thumb = "/media/link?wid=%s&attribute=%s" % (
                         wid, obj.attribute)
 

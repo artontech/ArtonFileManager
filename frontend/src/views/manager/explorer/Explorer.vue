@@ -640,7 +640,7 @@ export default {
         window.open(
           `http://${vm.setting.address}/media/link` +
           `?wid=${vm.repository.wid}&attribute=${target.attribute}` +
-          `&filename=${target.fullname}&cache=${vm.setting.cachethumb}`
+          `&filename=${encodeURIComponent(target.fullname)}&cache=${vm.setting.cachethumb}`
         );
       } else if (target.type == "dir") {
         vm.$refs.inputBox.initShow(

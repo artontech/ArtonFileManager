@@ -6,6 +6,7 @@ class Attribute(DefaultModel):
     file = None
     type = 0
     size = 0
+    encrypt_crc32 = 0
     crc32 = 0
     sha256 = ""
     ext = ""
@@ -19,9 +20,35 @@ class Attribute(DefaultModel):
     encrypt = ""
     key = ""
     delete = 0
+    check_date = ""
 
     # viewer
     fs_id = 0
+
+    def none(self):
+        ''' clear '''
+        self.page_no = None
+        self.page_size = None
+
+        self.id = None
+        self.file = None
+        self.type = None
+        self.size = None
+        self.encrypt_crc32 = None
+        self.crc32 = None
+        self.sha256 = None
+        self.ext = None
+        self.width = None
+        self.height = None
+        self.color = None
+        self.ahash = None
+        self.phash = None
+        self.dhash = None
+        self.desc = None
+        self.encrypt = None
+        self.key = None
+        self.delete = None
+        self.check_date = None
 
 def get_attribute(row) -> Attribute:
     obj = Attribute()
@@ -29,19 +56,21 @@ def get_attribute(row) -> Attribute:
     obj.file = row[1]
     obj.type = row[2]
     obj.size = row[3]
-    obj.crc32 = row[4]
-    obj.sha256 = row[5]
-    obj.ext = row[6]
-    obj.width = row[7]
-    obj.height = row[8]
-    obj.color = row[9]
-    obj.ahash = row[10]
-    obj.phash = row[11]
-    obj.dhash = row[12]
-    obj.desc = row[13]
-    obj.encrypt = row[14]
-    obj.key = row[15]
-    obj.delete = row[16]
+    obj.encrypt_crc32 = row[4]
+    obj.crc32 = row[5]
+    obj.sha256 = row[6]
+    obj.ext = row[7]
+    obj.width = row[8]
+    obj.height = row[9]
+    obj.color = row[10]
+    obj.ahash = row[11]
+    obj.phash = row[12]
+    obj.dhash = row[13]
+    obj.desc = row[14]
+    obj.encrypt = row[15]
+    obj.key = row[16]
+    obj.delete = row[17]
+    obj.check_date = row[18]
     return obj
 
 def get_attribute_list(db_results):

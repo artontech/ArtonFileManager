@@ -1,18 +1,30 @@
 <template>
-  <div class="osssync">
-    <a-button type="primary" :loading="btn1_loading" @click="btn1Click">{{
-      $t("oss.osssync.btn1_caption")
-    }}</a-button>
+  <div class="backup">
+    <a-row>
+      <a-button type="primary" :loading="btn1_loading" @click="btn1Click">{{
+        $t("backup.btn1_caption")
+      }}</a-button>
+      
+      <!-- Input import path -->
+      <a-input
+        class="path-input"
+        size="large"
+        :placeholder="$t('backup.edit1_placeholder')"
+        v-model="path"
+      >
+        <a-icon slot="addonAfter" type="folder-open" />
+      </a-input>
+    </a-row>
 
     <!-- Progress dashboard -->
     <a-divider />
-    <b>{{ $t("oss.osssync.label1_caption") }}</b>
+    <b>{{ $t("backup.label1_caption") }}</b>
     <a-divider />
     <a-row type="flex" justify="center">
       <a-col :span="8">
         <a-tooltip
           class="tooltip-structure"
-          :title="$t('oss.osssync.tooltip1_caption')"
+          :title="$t('backup.tooltip1_caption')"
         >
           <a-progress
             type="dashboard"
@@ -20,7 +32,7 @@
             :status="status"
           >
             <template #format="percent">
-              <span>{{ $t("oss.osssync.progress1_caption") }}</span>
+              <span>{{ $t("backup.progress1_caption") }}</span>
               <br />
               <span>{{ percent }}%</span>
             </template>
@@ -28,14 +40,14 @@
         </a-tooltip>
       </a-col>
       <a-col :span="8">
-        <a-tooltip :title="$t('oss.osssync.tooltip2_caption')">
+        <a-tooltip :title="$t('backup.tooltip2_caption')">
           <a-progress
             type="dashboard"
             :percent="upload_percent"
             :status="status"
           >
             <template #format="percent">
-              <span>{{ $t("oss.osssync.progress2_caption") }}</span>
+              <span>{{ $t("backup.progress2_caption") }}</span>
               <br />
               <span>{{ percent }}%</span>
             </template>
@@ -43,6 +55,18 @@
         </a-tooltip>
       </a-col>
     </a-row>
+
+    <!-- Log -->
+    <a-divider />
+    <b>{{ $t("backup.label2_caption") }}</b>
+    <a-divider />
+    <div class="logging-wrapper">
+      <a-list item-layout="horizontal" size="small" :data-source="msg">
+        <a-list-item slot="renderItem" slot-scope="item">
+          <span>{{ item }}</span>
+        </a-list-item>
+      </a-list>
+    </div>
   </div>
 </template>
 
@@ -54,10 +78,12 @@ export default {
   data() {
     return {
       info: null,
+      path: "",
       check_percent: 0,
       upload_percent: 0,
       status: null, // exception
       btn1_loading: false,
+      msg: [],
     };
   },
   beforeMount() {
@@ -89,6 +115,9 @@ export default {
             vm.upload_percent = 100.0;
             vm.btn1_loading = false;
             break;
+          case "msg":
+            vm.addMsg(vm.$i18n.t("all.info") + ": " + data?.msg);
+            break;
           default:
             console.log(msg);
             break;
@@ -104,25 +133,36 @@ export default {
     };
 
     // Websocket onnect
-    vm.websocket.connect(`ws://${vm.setting.address}/oss`);
+    vm.websocket.connect(`ws://${vm.setting.address}/backup`);
   },
   beforeDestroy() {
-    this.websocket?.close();
+    const vm = this;
+    vm.websocket?.close();
+    vm.msg.splice(0, vm.msg.length);
+    vm.path = "";
   },
   methods: {
+    addMsg(data) {
+      const vm = this;
+      if (vm.msg.length > 100) {
+        vm.msg.splice(0, 1);
+      }
+      vm.msg.push(data);
+    },
     /* * * * * * * * Start: Trigger * * * * * * * */
     btn1Click() {
       const vm = this;
       const body = {
         wid: vm.repository.wid,
+        backup_path: vm.path,
       };
       vm.btn1_loading = true;
       const onError = () => {
-        console.log(`[Error] failed to sync oss`);
+        console.log(`[Error] failed to backup`);
         vm.btn1_loading = false;
       };
       vm.$http
-        .post(`http://${vm.setting.address}/oss/sync`, body, options)
+        .post(`http://${vm.setting.address}/backup/copy`, body, options)
         .then((resp) => {
           vm.btn1_loading = false;
           if (resp.body.status === "success") {
@@ -138,4 +178,10 @@ export default {
 </script>
 
 <style>
+
+.path-input {
+  margin-left: 15px;
+  width: calc(100% - 110px);
+}
+
 </style>

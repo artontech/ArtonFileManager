@@ -4,7 +4,7 @@ import shutil
 
 from backend.controller.default import DefaultHandler
 from backend.service import workspace
-from backend.util import (io, url)
+from backend.util import (fileio, url)
 
 
 class Link(DefaultHandler):
@@ -36,7 +36,7 @@ class Link(DefaultHandler):
             self.write_json(err="no_attr")
             return
         attr = attr_list[0]
-        hash_file_name = io.format_file_name(
+        hash_file_name = fileio.format_file_name(
             attr.size, attr.crc32, attr.sha256, None)
         full_file_name = hash_file_name + attr.ext
 
@@ -54,7 +54,7 @@ class Link(DefaultHandler):
                 # decrypt
                 os.makedirs(self.options.tmp_path, exist_ok=True)
                 if attr.encrypt is not None and attr.key is not None:
-                    io.decrypt_file_to(hash_file_path, attr.key, tmp_file_path)
+                    fileio.decrypt_file_to(hash_file_path, attr.key, tmp_file_path)
                 else:
                     shutil.copy(hash_file_path, tmp_file_path)
 
@@ -64,19 +64,16 @@ class Link(DefaultHandler):
 
             with open(tmp_file_path, 'rb') as f:
                 data = f.read()
-
-                self.set_header('Content-Type', 'application/octet-stream')
-                self.set_header('Content-Disposition', 'attachment; filename=' + url.encode(filename))
-                self.write(data)
         else:
             if attr.encrypt is not None and attr.key is not None:
-                data = io.decrypt_file(hash_file_path, attr.key)
+                data, _, _ = fileio.decrypt_file_stream(hash_file_path, attr.key)
             else:
                 with open(hash_file_path, 'rb') as f:
                     data = f.read()
-            self.set_header('Content-Type', 'application/octet-stream')
-            self.set_header('Content-Disposition', 'attachment; filename=' + url.encode(filename))
-            self.write(data)
+
+        self.set_header('Content-Type', 'application/octet-stream')
+        self.set_header('Content-Disposition', f'attachment; filename="{url.encode(filename)}"')
+        self.write(data)
 
 class Export(DefaultHandler):
     ''' export media '''
@@ -111,7 +108,7 @@ class Export(DefaultHandler):
                 self.write_json(err="no_attr")
                 return
             attr = attr_list[0]
-            hash_file_name = io.format_file_name(
+            hash_file_name = fileio.format_file_name(
                 attr.size, attr.crc32, attr.sha256, None)
 
             # export
@@ -128,7 +125,7 @@ class Export(DefaultHandler):
 
             # decrypt
             if attr.encrypt is not None and attr.key is not None:
-                io.decrypt_file_to(hash_file_path, attr.key, file_path)
+                fileio.decrypt_file_to(hash_file_path, attr.key, file_path)
             else:
                 shutil.copy(hash_file_path, file_path)
 

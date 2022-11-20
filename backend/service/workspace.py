@@ -2,6 +2,7 @@
 
 import json
 import logging
+import multiprocessing
 import os
 import sys
 
@@ -11,6 +12,9 @@ if not "PATH_MAP" in dir():
     PATH_MAP = {}
     ID_MAP = {}
 
+CANCELABLE_HANDLER_ID = {
+    "check": 0
+}
 
 class WorkSpace():
     ''' workspce '''
@@ -20,6 +24,7 @@ class WorkSpace():
         self.err = None
         self.path = path
         self.ws_list = []
+        self.cancel_flag = multiprocessing.Array("i", [0 for _ in CANCELABLE_HANDLER_ID])
 
         # load json config
         if sys.platform == 'win32':
@@ -56,9 +61,11 @@ class WorkSpace():
         return json.dumps(self.serializable())
 
     def add_ws(self, ws):
+        ''' add websocket handler '''
         self.ws_list.append(ws)
 
     def del_ws(self, ws):
+        ''' del websocket handler '''
         new_list = []
         for w in self.ws_list:
             if w != ws:
@@ -66,10 +73,23 @@ class WorkSpace():
         self.ws_list = new_list
 
     def send_ws(self, name=None, msg_type="none", status="fail", err="", data=None):
+        ''' thread send websocket message '''
         for w in self.ws_list:
             if name is not None and w.name != name:
                 continue
             w.write_json(msg_type, status, err, data)
+
+    def set_cancel(self, handler_name: str):
+        ''' ws handler set cancel flag '''
+        self.cancel_flag[CANCELABLE_HANDLER_ID[handler_name]] = 1
+
+    def check_cancel(self, handler_name: str):
+        ''' thread check cancel flag '''
+        handler_id = CANCELABLE_HANDLER_ID[handler_name]
+        if self.cancel_flag[handler_id] == 1:
+            self.cancel_flag[handler_id] = 0
+            return True
+        return False
 
 
 def contains_path(path):

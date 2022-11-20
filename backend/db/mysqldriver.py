@@ -50,7 +50,7 @@ from backend.model.oss import (
     get_oss_list
 )
 from backend.util import (
-    io
+    fileio
 )
 
 
@@ -138,7 +138,7 @@ class MySQLDriver(Driver):
         # replace settings content
         ini_src_path = os.path.join(config_path, "mysql.windows.ini")
         ini_dst_path = os.path.join(self.workspace, "mysql.windows.ini")
-        io.replace_file_content(
+        fileio.replace_file_content(
             ini_src_path,
             ini_dst_path,
             [
@@ -150,10 +150,10 @@ class MySQLDriver(Driver):
 
         # replace sql content
         sql_db_path = os.path.join(config_path, "%s.sql" % (self.db_name))
-        db_structure = io.read_text_file(sql_db_path)
+        db_structure = fileio.read_text_file(sql_db_path)
         sql_src_path = os.path.join(config_path, "mysql.windows.sql")
         sql_dst_path = os.path.join(self.workspace, "mysql.windows.sql")
-        io.replace_file_content(
+        fileio.replace_file_content(
             sql_src_path,
             sql_dst_path,
             [
@@ -308,10 +308,10 @@ class MySQLDriver(Driver):
             result = False
 
         return result
-    
+
     def close_docker(self):
         result = True
-        
+
         cmd = ["docker", "stop", "/afm-mysql"]
         ret = subprocess.run(cmd, check=False)
         if ret.returncode != 0:
@@ -751,7 +751,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         return results
 
     @mylock
-    def get_attrs(self, item_id=None, size: int = None, crc32: int = None, sha256: str = None, delete: int = 0):
+    def get_attrs(self, item_id=None, size: int = None, crc32: int = None, sha256: str = None, delete: int = 0, check_date: str = None):
         ''' list attributes '''
         results = []
 
@@ -766,6 +766,8 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             sql_where += " and `sha256`='%s'" % (sha256)
         if delete is not None:
             sql_where += " and `delete`=%d" % (delete)
+        if check_date is not None:
+            sql_where += " and (`check_date` is NULL or `check_date`<%s)" % (safe(check_date))
         sql_where = sql_where.strip().lstrip('and')
         if sql_where == "":
             return results
@@ -1006,6 +1008,32 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             logging.warning(sql)
             raise err
         return results, count
+
+    @mylock
+    def update_attribute(self, attr: Attribute):
+        ''' update attribute '''
+        ok = False
+
+        sql_set = ""
+        if attr.encrypt_crc32 is not None:
+            sql_set += ", `encrypt_crc32`=%d" % (attr.encrypt_crc32)
+        if attr.delete is not None:
+            sql_set += ", `delete`=%d" % (attr.delete)
+        if attr.check_date is not None:
+            sql_set += ", `check_date`=%s" % (safe(attr.check_date))
+        sql_set = sql_set.lstrip(',')
+
+        sql = "UPDATE `%s`.attribute SET %s WHERE id=%d" % (
+            self.db_name, sql_set, attr.id)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                ok = True
+        except Exception as e:
+            logging.warning(sql)
+            self.rollback()
+            raise e
+        return ok
 
     @mylock
     def update_file(self, file: File):

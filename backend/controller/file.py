@@ -12,7 +12,7 @@ from backend.controller.dir import (get_dir_path)
 from backend.model.attribute import Attribute
 from backend.model.file import File
 from backend.service import workspace
-from backend.util import (io)
+from backend.util import (fileio)
 
 class Exist(DefaultHandler):
     ''' file exist '''
@@ -43,8 +43,8 @@ class Exist(DefaultHandler):
         try:
             file_data = file_meta['body']
             file_size = len(file_data)
-            file_crc32 = io.get_crc_32(file_data)
-            file_sha256 = io.get_sha_256(file_data)
+            file_crc32 = fileio.get_crc_32(file_data)
+            file_sha256 = fileio.get_sha_256(file_data)
 
             # if attr exist
             attr_list = space.driver.get_attrs(
@@ -108,12 +108,12 @@ class Upload(DefaultHandler):
             file_name = file_meta["filename"]
             file_data = file_meta["body"]
             file_size = len(file_data)
-            file_crc32 = io.get_crc_32(file_data)
-            file_sha256 = io.get_sha_256(file_data)
+            file_crc32 = fileio.get_crc_32(file_data)
+            file_sha256 = fileio.get_sha_256(file_data)
             file_sp = os.path.splitext(file_name)
             file_ext = file_sp[1].lower() if file_sp[1] is not None else ""
 
-            hash_file_name = io.format_file_name(
+            hash_file_name = fileio.format_file_name(
                 file_size, file_crc32, file_sha256, None)
 
             # add file
@@ -143,7 +143,7 @@ class Upload(DefaultHandler):
                 attr.sha256 = file_sha256
                 attr.ext = file_ext
                 attr.encrypt = encrypt
-                attr.key = io.random_key(32)
+                attr.key = fileio.random_key(32)
                 # add `attribute`
                 attr.id, attr_ok = space.driver.add_attribute(attr)
                 if not attr_ok:
@@ -162,7 +162,7 @@ class Upload(DefaultHandler):
                 shutil.copy(new_file_path, bak_file_path)
             try:
                 if attr.encrypt is not None:
-                    io.encrypt_data_to(file_data, attr.key, new_file_path)
+                    fileio.encrypt_data_to(file_data, attr.key, new_file_path)
                 else:
                     with open(new_file_path, 'wb') as f:
                         f.write(file_data)
