@@ -1,5 +1,10 @@
 <template>
-  <div class="file-list">
+  <div class="file-list" ref="container">
+    <!-- File viewer menu -->
+    <a-affix class="file-list-header" :target="() => this.$refs.container">
+      <slot name="file-toolbar"></slot>
+    </a-affix>
+
     <!-- Table -->
     <a-table
       tableLayout="fixed"
@@ -186,9 +191,12 @@ export default {
 
 <style>
 .file-list {
-  max-height: calc(100vh - 250px);
+  max-height: calc(100vh - 180px);
   overflow: auto;
-  padding-top: 10px;
+}
+
+.file-list-header .ant-affix {
+  background-color: #fafafa;
 }
 
 .list-icon {

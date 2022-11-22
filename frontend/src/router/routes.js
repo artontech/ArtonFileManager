@@ -30,6 +30,11 @@ const routes = [
     component: () => import("../views/manager/repository/Repository.vue"),
   },
   {
+    path: "/searchfile",
+    name: "SearchFile",
+    component: () => import("../views/manager/SearchFile.vue"),
+  },
+  {
     path: "/baidumanager",
     name: "BaiduManager",
     component: () => import("../views/netdisk/baidunetdisk/BaiduManager.vue"),

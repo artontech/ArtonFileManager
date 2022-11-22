@@ -704,3 +704,43 @@ class Update(DefaultHandler):
             return
 
         self.write_json(status="success", data=len(targets))
+
+
+class GetDir(DefaultHandler):
+    ''' get dir '''
+
+    def data_received(self, chunk):
+        pass
+
+    def get(self):
+        ''' get '''
+        self.post()
+
+    def post(self):
+        ''' post '''
+        wid = self.get_arg("wid")
+        target = self.get_arg("target")
+
+        if target == 0:
+            self.write_json(status="success", data={
+                "id": 0,
+                "parent": 0,
+                "name": "/",
+                "delete": False
+            })
+            return
+
+        # get workspace first
+        space = workspace.get_by_id(wid)
+        if space is None or not space.enabled:
+            self.write_json(err="no_workspace")
+            return
+
+        # check exist
+        dir_list = space.driver.get_dirs(item_id=target)
+        if len(dir_list) <= 0:
+            logging.info("dir not exist %s", target)
+            self.write_json(err="no_dir")
+            return
+
+        self.write_json(status="success", data=dir_list[0])

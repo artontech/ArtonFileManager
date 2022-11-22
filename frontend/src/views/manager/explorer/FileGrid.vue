@@ -1,15 +1,16 @@
 <template>
   <div class="file-grid">
     <!-- File viewer menu -->
-    <div class="file-toolbox">
+    <div>
       <a-checkbox
         :indeterminate="indeterminate"
         :checked="checkAll"
         @change="onCheckAllChange"
-        >{{ $t("all.select_all") }}</a-checkbox
-      >
+        >{{ $t("all.select_all") }}
+      </a-checkbox>
+      <a-divider type="vertical" />
+      <slot name="file-toolbar"></slot>
     </div>
-    <a-divider />
 
     <a-checkbox-group :value="checkedList">
       <div class="file-grid-flex">
@@ -208,7 +209,7 @@ export default {
 
 <style>
 .file-grid-flex {
-  max-height: calc(100vh - 320px);
+  max-height: calc(100vh - 230px);
   overflow: auto;
   display: flex;
   flex-flow: row wrap;

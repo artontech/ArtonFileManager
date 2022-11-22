@@ -27,6 +27,15 @@ const all = {
   delete: "Delete",
   rename: "Rename",
   clear: "Clear",
+  param_invalid: "Param invalid",
+  result: "Result",
+  hide: "Hide",
+  home: "Home",
+  back: "Back",
+  ahash: "aHash",
+  dhash: "dHash",
+  phash: "pHash",
+  attr_id: "AttrId",
 };
 
 const explorer = {
@@ -99,6 +108,7 @@ const menu = {
     label3_caption: "Files",
     label4_caption: "Directories",
   },
+  search_file: "Search File",
 };
 
 const backup = {
@@ -152,6 +162,15 @@ const setting = {
   },
 };
 
+const search_file = {
+  btn1_caption: "Search",
+  input1_placeholder: "aHash",
+  input2_placeholder: "dHash",
+  input3_placeholder: "pHash",
+  input4_placeholder: "AttrId",
+  view_dir: "view dir",
+};
+
 const websocket = {
   attr_fail: "failed to get file attr",
   dup_file: "file exists",
@@ -197,4 +216,16 @@ const oss = {
   },
 };
 
-export { all, explorer, menu, backup, check, repository, setting, websocket, baidunetdisk, oss };
+export {
+  all,
+  explorer,
+  menu,
+  backup,
+  check,
+  repository,
+  search_file,
+  setting,
+  websocket,
+  baidunetdisk,
+  oss
+};

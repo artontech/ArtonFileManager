@@ -2,9 +2,18 @@
 from tornado.web import Application
 
 from backend.controller import (
+    attributetag,
+    backup,
+    baidunetdisk,
+    check,
     dir as cdir,
+    error,
     file as cfile,
-    workspace, error, media, tag, attributetag, baidunetdisk, backup, check, oss
+    media,
+    oss,
+    tag,
+    searchfile,
+    workspace
 )
 from backend import config
 
@@ -20,6 +29,7 @@ def make_app():
         (r"/dir/create", cdir.Create, dict(name="create")),
         (r"/dir/moveto", cdir.MoveTo, dict(name="move to")),
         (r"/dir/update", cdir.Update, dict(name="update")),
+        (r"/dir/getdir", cdir.GetDir, dict(name="get dir")),
 
         (r"/file/exist", cfile.Exist, dict(name="exist")),
         (r"/file/upload", cfile.Upload, dict(name="upload")),
@@ -56,6 +66,9 @@ def make_app():
 
         (r"/check", check.CheckWebSocket),
         (r"/check/check", check.Check, dict(name="check")),
+
+        (r"/searchfile", searchfile.SearchFileWebSocket),
+        (r"/searchfile/search", searchfile.Search, dict(name="search file")),
 
         (r"/", error.NotFound)
     ], **options.settings)

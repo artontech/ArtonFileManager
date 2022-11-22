@@ -555,24 +555,18 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         current_id = "NULL"
         ok = False
 
-        if attr.id is None:
-            item_id = "NULL"
-        else:
-            item_id = "'%s'" % attr.id
-        if attr.encrypt is None:
-            encrypt = "NULL"
-        else:
-            encrypt = "'%s'" % attr.encrypt
-        if attr.key is None:
-            key = "NULL"
-        else:
-            key = "'%s'" % attr.key
+        item_id = "NULL" if attr.id is None else f"'{attr.id}'"
+        encrypt = "NULL" if attr.encrypt is None else f"'{attr.encrypt}'"
+        key = "NULL" if attr.key is None else f"'{attr.key}'"
+        check_date = "NULL" if attr.check_date is None else f"'{attr.check_date}'"
 
-        sql = "INSERT INTO `%s`.attribute (`id`,`file`,`type`,`size`,`crc32`,`sha256`,`ext`,`width`,`height`,`color`, \
-            `ahash`,`phash`,`dhash`,`desc`,`encrypt`,`key`,`delete`) VALUES (%s,%s,%d,%d,'%s','%s',%s,%d,%d,'%s',%d,%d,%d, \
-            %s,%s,%s,%d);" % (self.db_name, item_id, attr.file, attr.type, attr.size, attr.crc32, attr.sha256,
-                              safe(attr.ext), attr.width, attr.height, attr.color, attr.ahash, attr.phash, attr.dhash,
-                              safe(attr.desc), encrypt, key, attr.delete)
+        sql = f"INSERT INTO `{self.db_name}`.attribute (\
+`id`,`file`,`type`,`size`,`encrypt_crc32`,`crc32`,`sha256`,`ext`,`width`,`height`,`color`, \
+`ahash`,`phash`,`dhash`,`desc`,`encrypt`,`key`,`delete`,`check_date`) VALUES (\
+{item_id},{attr.file},{attr.type},{attr.size},'{attr.encrypt_crc32}','{attr.crc32}',\
+'{attr.sha256}',{safe(attr.ext)},{attr.width},{attr.height},'{attr.color}',\
+'{attr.ahash}','{attr.phash}','{attr.dhash}',{safe(attr.desc)},{encrypt},{key},\
+{attr.delete},{check_date});"
         try:
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
@@ -751,7 +745,18 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         return results
 
     @mylock
-    def get_attrs(self, item_id=None, size: int = None, crc32: int = None, sha256: str = None, delete: int = 0, check_date: str = None):
+    def get_attrs(
+            self,
+            item_id=None,
+            size: int = None,
+            crc32: int = None,
+            sha256: str = None,
+            ahash: int = None,
+            dhash: int = None,
+            phash: int = None,
+            delete: int = 0,
+            check_date: str = None
+        ):
         ''' list attributes '''
         results = []
 
@@ -764,6 +769,12 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             sql_where += " and `crc32`=%d" % (crc32)
         if sha256 is not None:
             sql_where += " and `sha256`='%s'" % (sha256)
+        if ahash is not None:
+            sql_where += " and `ahash`='%s'" % (ahash)
+        if dhash is not None:
+            sql_where += " and `dhash`='%s'" % (dhash)
+        if phash is not None:
+            sql_where += " and `phash`='%s'" % (phash)
         if delete is not None:
             sql_where += " and `delete`=%d" % (delete)
         if check_date is not None:

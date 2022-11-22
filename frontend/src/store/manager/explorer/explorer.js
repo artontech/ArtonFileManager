@@ -1,7 +1,6 @@
 const explorer = {
   state: {
     explorer: {
-      breadcrumb_max_len: 5, // Max len of breadcrumb before fold
       nocache: undefined, // Nocache content
     },
   },

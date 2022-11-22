@@ -27,6 +27,15 @@ const all = {
   delete: "删除",
   rename: "重命名",
   clear: "清空",
+  param_invalid: "参数非法",
+  result: "结果",
+  hide: "隐藏",
+  home: "主页",
+  back: "返回",
+  ahash: "aHash",
+  dhash: "dHash",
+  phash: "pHash",
+  attr_id: "AttrId",
 };
 
 const explorer = {
@@ -99,6 +108,7 @@ const menu = {
     label3_caption: "文件数",
     label4_caption: "文件夹数",
   },
+  search_file: "检索文件",
 };
 
 const backup = {
@@ -132,6 +142,15 @@ const repository = {
     title: "请设置仓库密码",
     placeholder: "仓库密码",
   },
+};
+
+const search_file = {
+  btn1_caption: "检索",
+  input1_placeholder: "aHash",
+  input2_placeholder: "dHash",
+  input3_placeholder: "pHash",
+  input4_placeholder: "AttrId",
+  view_dir: "打开文件位置",
 };
 
 const setting = {
@@ -197,4 +216,16 @@ const oss = {
   },
 };
 
-export { all, explorer, menu, backup, check, repository, setting, websocket, baidunetdisk, oss };
+export {
+  all,
+  explorer,
+  menu,
+  backup,
+  check,
+  repository,
+  search_file,
+  setting,
+  websocket,
+  baidunetdisk,
+  oss
+};

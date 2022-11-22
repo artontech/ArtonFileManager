@@ -26,23 +26,32 @@
         <a-button
           class="tool-button"
           icon="cloud-upload"
+          size="small"
           type="primary"
           @click="btn1Click"
-          >{{ $t("all.import") }}</a-button
         >
+          {{ $t("all.import") }}
+        </a-button>
 
         <!-- Upload -->
         <a-button
           class="tool-button"
           icon="upload"
+          size="small"
           type="primary"
           @click="btn4Click"
-          >{{ $t("all.upload") }}</a-button
         >
+          {{ $t("all.upload") }}
+        </a-button>
 
-        <a-button class="tool-button" icon="folder-add" @click="mkdir">{{
-          $t("all.mkdir")
-        }}</a-button>
+        <a-button
+          class="tool-button"
+          icon="folder-add"
+          size="small"
+          @click="mkdir"
+        >
+          {{$t("all.mkdir")}}
+        </a-button>
       </div>
 
       <!-- Right buttons -->
@@ -52,6 +61,7 @@
             <a-button
               class="tool-button-right"
               icon="download"
+              size="small"
               type="primary"
               :loading="btn1_loading"
               @click="btn3Click"
@@ -60,6 +70,7 @@
             <a-button
               class="tool-button-right"
               icon="delete"
+              size="small"
               type="danger"
               :disabled="!tool_button_visible"
               @click="btn2Click"
@@ -74,31 +85,6 @@
     <DirSelector ref="dirSelector" @ok="dirSelectorOK" />
 
     <div class="file-container">
-      <div class="secondary-menu">
-        <!-- Breadcrumb -->
-        <a-breadcrumb :routes="breadcrumb">
-          <a-breadcrumb-item href></a-breadcrumb-item>
-          <template slot="itemRender" slot-scope="{ route }">
-            <a-icon v-if="route.icon != null" :type="route.icon" />&nbsp;
-            <a @click="goto(route, $event)">{{ route.label }}</a>
-          </template>
-        </a-breadcrumb>
-
-        <!-- Switch view -->
-        <a class="secondary-menu-right" @click="switchFileView">
-          <a-icon
-            v-if="file_view == 'grid'"
-            type="unordered-list"
-            :style="{ fontSize: '16px' }"
-          />
-          <a-icon
-            v-else-if="file_view == 'list'"
-            type="appstore"
-            :style="{ fontSize: '16px' }"
-          />
-        </a>
-      </div>
-
       <!-- File viewer -->
       <FileGrid
         ref="fileGrid"
@@ -112,7 +98,15 @@
         @goto="goto"
         @moveto="moveto"
         @rename="rename"
-      />
+      >
+        <FileToolbar
+          slot="file-toolbar"
+          :current_dir="current_dir"
+          :file_view="file_view"
+          @goto="goto"
+          @switch-file-view="switchFileView"
+        />
+      </FileGrid>
       <FileList
         ref="fileList"
         v-else-if="file_view == 'list'"
@@ -125,7 +119,15 @@
         @goto="goto"
         @moveto="moveto"
         @rename="rename"
-      />
+      >
+        <FileToolbar
+          slot="file-toolbar"
+          :current_dir="current_dir"
+          :file_view="file_view"
+          @goto="goto"
+          @switch-file-view="switchFileView"
+        />
+      </FileList>
 
       <!-- Pagination -->
       <a-pagination
@@ -149,17 +151,9 @@
 <script>
 import { Modal } from "ant-design-vue";
 import options from "@/config/request";
+import { http_post } from "@/util/HttpRequest";
 
 const data = [];
-const breadcrumb_home = {
-  id: 0,
-  type: "breadcrumb",
-  icon: "home",
-  label: "home",
-  breadcrumbName: "home",
-  children: [],
-  page_no: 1,
-};
 
 export default {
   data() {
@@ -174,12 +168,12 @@ export default {
       setting: null,
       data,
       current: 0,
-      breadcrumb_flat: null,
-      breadcrumb: null,
+      dir_info: null,
       file_view: null,
       checked: null,
       page_no: 1,
       page_size: 15,
+      current_dir: {id: 0, name: "/"},
       total: 0,
     };
   },
@@ -191,6 +185,7 @@ export default {
     UploadDrawer: () => import("./UploadDrawer"),
     FileGrid: () => import("./FileGrid"),
     FileList: () => import("./FileList"),
+    FileToolbar: () => import("@/components/FileToolbar"),
   },
   beforeMount() {
     const vm = this;
@@ -204,23 +199,34 @@ export default {
     }
 
     // deal with nocache items
-    let nocache = vm.explorer.nocache;
+    let nocache = vm.explorer.nocache, need_update = false;
     if (nocache === undefined) {
       nocache = {
         current: 0,
-        breadcrumb_flat: [breadcrumb_home],
-        breadcrumb: [breadcrumb_home],
+        dir_info: {"0": {page: 1}},
         file_view: "grid",
       };
+      need_update = true;
+    }
+    if (vm.$route.query.current !== undefined) {
+      nocache.current = vm.$route.query.current;
+      need_update = true;
+    }
+    vm.current = vm.$route.query.current ?? nocache.current;
+    vm.dir_info = nocache.dir_info;
+    vm.file_view = nocache.file_view;
+    vm.newDirInfo();
+    vm.page_no = vm.getDirInfo().page;
+    if (need_update) {
       vm.$store.commit("updateExplorerNocache", nocache);
     }
-    vm.current = nocache.current;
-    vm.breadcrumb_flat = nocache.breadcrumb_flat;
-    vm.breadcrumb = nocache.breadcrumb;
-    vm.file_view = nocache.file_view;
   },
   mounted() {
-    this.list();
+    const vm = this;
+    vm.getDir(vm.current).then((dir) => {
+      vm.current_dir = dir;
+    });
+    vm.list();
   },
   computed: {},
   methods: {
@@ -247,6 +253,28 @@ export default {
       vm.tool_button_visible = false;
       vm.$refs.fileGrid?.clearCheck();
       vm.$refs.fileList?.clearCheck();
+    },
+    getDirInfo() {
+      const vm = this;
+      return vm.dir_info[`${vm.current}`];
+    },
+    getDir(id) {
+      const vm = this;
+
+      const body = {
+        wid: vm.repository.wid,
+        target: id,
+      };
+      return vm.http_post(`http://${vm.setting.address}/dir/getdir`, body);
+    },
+    http_post(url, body) {
+      return http_post(this, url, body);
+    },
+    newDirInfo() {
+      const vm = this;
+      if (!vm.dir_info[`${vm.current}`]) {
+        vm.dir_info[`${vm.current}`] = {page: 1};
+      }
     },
 
     /* * * * * * * * Start: Trigger * * * * * * * */
@@ -318,7 +346,7 @@ export default {
             }
           },
           (error) => {
-            onError();
+            onError(error);
           }
         );
     },
@@ -356,7 +384,7 @@ export default {
               }
             },
             (error) => {
-              onError();
+              onError(error);
             }
           );
       }
@@ -380,7 +408,7 @@ export default {
       const vm = this;
       vm.page_no = page;
       vm.page_size = pageSize;
-      vm.breadcrumb_flat[vm.breadcrumb_flat.length - 1].page_no = page;
+      vm.getDirInfo().page = page;
       vm.list();
     },
     mkdir() {
@@ -410,7 +438,7 @@ export default {
                 }
               },
               (error) => {
-                onError();
+                onError(error);
               }
             );
         }
@@ -439,6 +467,13 @@ export default {
     /* * * * * * * * Start: File viewer * * * * * * * */
     list() {
       const vm = this;
+
+      // update vuex
+      vm.newDirInfo();
+      vm.$store.commit("updateExplorerNocache", {
+        current: vm.current,
+        dir_info: vm.dir_info,
+      });
 
       if (!vm.repository.wid) {
         return;
@@ -501,7 +536,7 @@ export default {
             }
           },
           (error) => {
-            onError();
+            onError(error);
           }
         );
     },
@@ -532,7 +567,7 @@ export default {
             }
           },
           (error) => {
-            onError();
+            onError(error);
           }
         );
     },
@@ -595,6 +630,18 @@ export default {
                           "menu.dropdown_menu.label2_caption"
                         )}: ${size} (${data.size})`}
                       </p>
+                      <p>
+                        {`${vm.$i18n.t("all.attr_id")}: ${data.id}`}
+                      </p>
+                      <p>
+                        {`${vm.$i18n.t("all.ahash")}: ${data.ahash}`}
+                      </p>
+                      <p>
+                        {`${vm.$i18n.t("all.dhash")}: ${data.dhash}`}
+                      </p>
+                      <p>
+                        {`${vm.$i18n.t("all.phash")}: ${data.phash}`}
+                      </p>
                     </div>
                   ) : (
                     <div>
@@ -624,7 +671,7 @@ export default {
             }
           },
           (error) => {
-            onError();
+            onError(error);
           }
         );
     },
@@ -666,7 +713,7 @@ export default {
                   }
                 },
                 (error) => {
-                  onError();
+                  onError(error);
                 }
               );
           }
@@ -676,80 +723,42 @@ export default {
       }
     },
     goto(target, event) {
+      event;
       const vm = this;
-      if (target === undefined || target.id === undefined) return;
+      if (target === undefined || target.type === undefined) return;
 
       vm.clear();
 
-      let obj = null;
-      for (let i in vm.data) {
-        if (vm.data[i].id == target.id) {
-          obj = vm.data[i];
+      switch (target.type) {
+        case "home":
+          vm.current = 0;
           break;
-        }
+        case "back":
+          vm.current = vm.current_dir?.parent;
+          break;
+        case "dir":
+          // update current
+          vm.current = target.id;
+          break;
+        case "file":
+          // open tag drawer
+          vm.addTag(target);
+          break;
       }
-      if (target.type == "breadcrumb" || target.type == "dir") {
-        // update flat breadcrumb
-        if (target.id === 0) {
-          vm.breadcrumb_flat = [breadcrumb_home];
-        } else {
-          let breadcrumb_target = null;
-          for (let i in vm.breadcrumb_flat) {
-            vm.breadcrumb_flat[i].children = [];
-            if (vm.breadcrumb_flat[i].id === target.id) {
-              breadcrumb_target = parseInt(i) + 1;
-            }
-          }
-          if (breadcrumb_target) {
-            vm.breadcrumb_flat.splice(
-              breadcrumb_target,
-              vm.breadcrumb_flat.length - breadcrumb_target
-            );
-          } else {
-            vm.breadcrumb_flat.push({
-              id: obj.id,
-              type: "breadcrumb",
-              label: obj.name,
-              breadcrumbName: obj.name + obj.id,
-              page_no: 1,
-            });
-          }
-        }
-
-        // update current
-        vm.current = target.id;
-        vm.page_no = target.page_no ?? 1;
-
-        // refresh list
-        vm.list();
-
-        // update breadcrumb
-        vm.breadcrumb.splice(0, vm.breadcrumb.length);
-        if (vm.breadcrumb_flat.length > vm.explorer.breadcrumb_max_len) {
-          const fold_end =
-            vm.breadcrumb_flat.length - vm.explorer.breadcrumb_max_len;
-          for (let i = 1; i < fold_end; i++) {
-            vm.breadcrumb_flat[0].children.push(vm.breadcrumb_flat[i]);
-          }
-          vm.breadcrumb.push(vm.breadcrumb_flat[0]);
-          for (let i = fold_end; i < vm.breadcrumb_flat.length; i++) {
-            vm.breadcrumb.push(vm.breadcrumb_flat[i]);
-          }
-        } else {
-          for (let i in vm.breadcrumb_flat) {
-            vm.breadcrumb.push(vm.breadcrumb_flat[i]);
-          }
-        }
-
-        // update vuex
-        vm.$store.commit("updateExplorerNocache", {
-          current: vm.current,
-          breadcrumb_flat: vm.breadcrumb_flat,
-          breadcrumb: vm.breadcrumb,
-        });
-      } else if (target.type == "file") {
-        // open tag drawer
-        vm.addTag(target);
+      
+      switch (target.type) {
+        case "home":
+        case "back":
+        case "dir":
+          vm.$router.push({
+            name: 'Explorer',
+            query: {
+              current: vm.current
+            },
+          });
+          break;
+        case "file":
+          break;
       }
     },
     moveto(target, e) {
@@ -777,16 +786,6 @@ export default {
 
 <style>
 .file-container {
-  margin-top: 8px;
-}
-
-.secondary-menu {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
-.file-toolbox {
   margin-top: 8px;
 }
 
