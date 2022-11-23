@@ -1,5 +1,6 @@
 <template>
   <a-drawer
+    id="import-drawer"
     placement="right"
     width="50vw"
     :closable="true"
@@ -20,9 +21,9 @@
 
     <!-- Progress dashboard -->
     <a-divider />
-    <b>{{ $t("explorer.import_drawer.label1_caption") }}</b>
+    <b>{{$t("explorer.import_drawer.label1_caption") + `(${now}/${total})`}}</b>
     <a-divider />
-    <a-row type="flex" justify="center">
+    <a-row id="dashboard" type="flex" justify="space-around">
       <a-col :span="8">
         <a-tooltip
           class="tooltip-structure"
@@ -103,6 +104,8 @@ export default {
       files_percent: 0,
       msg: [],
       mod: false,
+      now: 0,
+      total: 0,
     };
   },
   beforeMount() {
@@ -159,6 +162,7 @@ export default {
                       vm.btn1_loading = false;
                       vm.structure_percent = 100.0;
                       vm.files_percent = 100.0;
+                      vm.now = vm.total;
                       break;
                   }
                   vm.addMsg(parseData(data));
@@ -168,6 +172,8 @@ export default {
                   vm.files_percent = new Number(percent.toFixed(2));
                   vm.btn1_loading = true;
                   vm.structure_percent = 100.0;
+                  vm.now = data.now;
+                  vm.total = data.total;
                   break;
                 default:
                   vm.addMsg(parseData(data));
@@ -223,6 +229,8 @@ export default {
       vm.$emit("on-close", vm.mod);
       vm.msg.splice(0, vm.msg.length);
       vm.path = "";
+      vm.now = 0;
+      vm.total = 0;
     },
     btn1Click(e) {
       const vm = this;
@@ -233,6 +241,8 @@ export default {
       vm.structure_percent = 0;
       vm.files_percent = 0;
       vm.msg.splice(0, vm.msg.length);
+      vm.now = 0;
+      vm.total = 0;
 
       // Sending request
       const body = {
@@ -272,8 +282,13 @@ export default {
 </script>
 
 <style>
-.ant-drawer > .ant-drawer-content-wrapper {
-  min-width: 500px;
+#import-drawer .ant-drawer-content-wrapper {
+  min-width: 300px;
+}
+
+#dashboard {
+  text-align: center;
+  width: 90%;
 }
 
 .tooltip-structure {

@@ -1,88 +1,90 @@
 <template>
   <div class="file-list" ref="container">
     <!-- File viewer menu -->
-    <a-affix class="file-list-header" :target="() => this.$refs.container">
-      <slot name="file-toolbar"></slot>
-    </a-affix>
+    <slot name="file-toolbar"></slot>
+    <a-divider />
 
     <!-- Table -->
-    <a-table
-      tableLayout="fixed"
-      :row-selection="{
-        selectedRowKeys: selectedRowKeys,
-        onChange: onSelectChange,
-      }"
-      :columns="columns"
-      :data-source="data"
-      :bordered="false"
-      :pagination="false"
-    >
-      <span slot="icon" slot-scope="item">
-        <!-- Main dropdown menu -->
-        <DropdownMenu
-          :trigger="['contextmenu']"
-          :item="item"
-          @add-tag="addTag"
-          @del="del"
-          @detail="detail"
-          @download="download"
-          @goto="goto"
-          @moveto="moveto"
-          @rename="rename"
-        >
-          <!-- Image -->
-          <div>
-            <img
-              v-show="item.thumb_done"
-              class="list-thumb"
-              :key="`${item.fullname}${Math.random()}`"
-              :alt="item.fullname"
-              :src="item.thumb"
-              @load="onLoad(item)"
-            />
-            <img
-              v-if="!item.thumb_done"
-              class="list-icon"
-              :alt="item.fullname"
-              :src="item.icon"
-            />
-          </div>
-        </DropdownMenu>
-      </span>
+    <div class="file-list-table-wrapper">
+      <a-table
+        tableLayout="fixed"
+        :row-selection="{
+          columnWidth: 30,
+          selectedRowKeys: selectedRowKeys,
+          onChange: onSelectChange,
+        }"
+        :columns="columns"
+        :data-source="data"
+        :bordered="false"
+        :pagination="false"
+      >
+        <span slot="icon" slot-scope="item">
+          <!-- Main dropdown menu -->
+          <DropdownMenu
+            :trigger="['contextmenu']"
+            :item="item"
+            @add-tag="addTag"
+            @del="del"
+            @detail="detail"
+            @download="download"
+            @goto="goto"
+            @moveto="moveto"
+            @rename="rename"
+          >
+            <!-- Image -->
+            <div>
+              <img
+                v-show="item.thumb_done"
+                class="list-thumb"
+                :key="`${item.fullname}${Math.random()}`"
+                :alt="item.fullname"
+                :src="item.thumb"
+                @load="onLoad(item)"
+              />
+              <img
+                v-if="!item.thumb_done"
+                class="list-icon"
+                :alt="item.fullname"
+                :src="item.icon"
+              />
+            </div>
+          </DropdownMenu>
+        </span>
 
-      <span slot="name" slot-scope="item">
-        <a-tooltip :title="item.fullname">
-          <a @click="goto(item, $event)">{{ item.fullname }}</a>
-        </a-tooltip>
-      </span>
+        <span slot="name" slot-scope="item">
+          <a-tooltip :title="item.fullname">
+            <a @click="goto(item, $event)">{{ item.fullname }}</a>
+          </a-tooltip>
+        </span>
 
-      <span slot="tags" slot-scope="item">
-        <a-tag
-          v-for="tag in item.tags"
-          :key="`${item.id}${tag.key}:${tag.value}`"
-          :color="'geekblue'"
-          >{{ `${tag.key}:${tag.value}` }}</a-tag
-        >
-      </span>
+        <span slot="tags" slot-scope="item">
+          <a-tag
+            v-for="tag in item.tags"
+            :key="`${item.id}${tag.key}:${tag.value}`"
+            :color="'geekblue'"
+            >{{ `${tag.key}:${tag.value}` }}</a-tag
+          >
+        </span>
 
-      <span slot="action" slot-scope="item">
-        <!-- Secondary dropdown menu -->
-        <DropdownMenu
-          slot="extra"
-          :trigger="['click']"
-          :item="item"
-          @add-tag="addTag"
-          @del="del"
-          @detail="detail"
-          @download="download"
-          @goto="goto"
-          @moveto="moveto"
-          @rename="rename"
-        >
-          <a-icon type="down-circle" />
-        </DropdownMenu>
-      </span>
-    </a-table>
+        <span slot="action" slot-scope="item">
+          <!-- Secondary dropdown menu -->
+          <DropdownMenu
+            slot="extra"
+            :trigger="['click']"
+            :item="item"
+            @add-tag="addTag"
+            @del="del"
+            @detail="detail"
+            @download="download"
+            @goto="goto"
+            @moveto="moveto"
+            @rename="rename"
+          >
+            <a-icon type="down-circle" />
+          </DropdownMenu>
+        </span>
+      </a-table>
+    </div>
   </div>
 </template>
 
@@ -118,18 +120,19 @@ export default {
         title: "Tags",
         key: "tags",
         scopedSlots: { customRender: "tags" },
+        ellipsis: true,
       },
       {
         title: "Size",
         dataIndex: "attr.size",
-        width: 100,
+        ellipsis: true,
       },
       {
         title: "Action",
         key: "action",
         scopedSlots: { customRender: "action" },
         align: "right",
-        width: 100,
+        width: 50,
       },
     ];
     columns.forEach((item) => {
@@ -191,12 +194,21 @@ export default {
 
 <style>
 .file-list {
-  max-height: calc(100vh - 180px);
+  height: 100%;
+}
+
+.file-list-table-wrapper {
+  height: calc(100% - 38px);
   overflow: auto;
 }
 
-.file-list-header .ant-affix {
-  background-color: #fafafa;
+.file-list .ant-table-thead > tr:first-child > th:first-child {
+  padding: 1px 0;
+  width: 60px;
+}
+
+.file-list .ant-table-thead > tr > th {
+  padding: 5px 0;
 }
 
 .list-icon {

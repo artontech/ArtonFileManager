@@ -6,7 +6,7 @@ class Attribute(DefaultModel):
     file = None
     type = 0
     size = 0
-    encrypt_crc32 = 0
+    encrypt_crc32 = None
     crc32 = 0
     sha256 = ""
     ext = ""
@@ -20,15 +20,14 @@ class Attribute(DefaultModel):
     encrypt = ""
     key = ""
     delete = 0
-    check_date = ""
+    check_date = None
 
     # viewer
     fs_id = 0
 
     def none(self):
         ''' clear '''
-        self.page_no = None
-        self.page_size = None
+        super().none()
 
         self.id = None
         self.file = None

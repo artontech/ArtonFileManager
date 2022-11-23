@@ -1,14 +1,13 @@
 <template>
   <div class="file-grid">
     <!-- File viewer menu -->
-    <div>
+    <div class="file-grid-toolbar">
       <a-checkbox
         :indeterminate="indeterminate"
         :checked="checkAll"
         @change="onCheckAllChange"
         >{{ $t("all.select_all") }}
       </a-checkbox>
-      <a-divider type="vertical" />
       <slot name="file-toolbar"></slot>
     </div>
 
@@ -208,14 +207,6 @@ export default {
 
 
 <style>
-.file-grid-flex {
-  max-height: calc(100vh - 230px);
-  overflow: auto;
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: flex-start;
-}
-
 .ant-card-head {
   min-height: 30px;
   height: 30px;
@@ -244,15 +235,37 @@ export default {
   border-bottom-color: #80cef8;
 }
 
+.ant-checkbox-group {
+  display: block;
+  height: 100%;
+}
+
 .file-card {
-  width: 150px;
   margin: 0 0 10px 10px;
+  max-height: 150px;
+  width: 150px;
 }
 
 .file-card > .ant-card-body {
   height: 110px;
   text-align: center;
   padding: 5px;
+}
+
+.file-grid {
+  height: 100%;
+}
+
+.file-grid-flex {
+  height: calc(100% - 24px);
+  overflow: auto;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+}
+
+.file-grid-toolbar {
+  margin-bottom: 3px;
 }
 
 .grid-icon {

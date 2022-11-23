@@ -150,9 +150,9 @@ class Import(DefaultHandler):
 
                     # add files
                     for f in files:
-                        if not exist_files.get(f, False):
-                            sp = os.path.splitext(f)
-                            ext = sp[1].lower() if sp[1] is not None else ""
+                        sp = os.path.splitext(f)
+                        ext = sp[1].lower() if sp[1] is not None else ""
+                        if not exist_files.get(sp[0] + ext, False):
                             file = File()
                             # if has missing id, use it
                             if len(miss_file_id) > 0:

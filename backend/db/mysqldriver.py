@@ -556,6 +556,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         ok = False
 
         item_id = "NULL" if attr.id is None else f"'{attr.id}'"
+        encrypt_crc32 = "NULL" if attr.encrypt_crc32 is None else f"'{attr.encrypt_crc32}'"
         encrypt = "NULL" if attr.encrypt is None else f"'{attr.encrypt}'"
         key = "NULL" if attr.key is None else f"'{attr.key}'"
         check_date = "NULL" if attr.check_date is None else f"'{attr.check_date}'"
@@ -563,7 +564,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         sql = f"INSERT INTO `{self.db_name}`.attribute (\
 `id`,`file`,`type`,`size`,`encrypt_crc32`,`crc32`,`sha256`,`ext`,`width`,`height`,`color`, \
 `ahash`,`phash`,`dhash`,`desc`,`encrypt`,`key`,`delete`,`check_date`) VALUES (\
-{item_id},{attr.file},{attr.type},{attr.size},'{attr.encrypt_crc32}','{attr.crc32}',\
+{item_id},{attr.file},{attr.type},{attr.size},{encrypt_crc32},'{attr.crc32}',\
 '{attr.sha256}',{safe(attr.ext)},{attr.width},{attr.height},'{attr.color}',\
 '{attr.ahash}','{attr.phash}','{attr.dhash}',{safe(attr.desc)},{encrypt},{key},\
 {attr.delete},{check_date});"

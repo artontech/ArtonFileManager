@@ -256,7 +256,8 @@ class Sync(DefaultHandler):
         else:
             self.write_json(err="invalid_vip_type")
             return
-        last_err = ""
+
+        last_err = None
         for i in range(attr_len):
             retry = 0
             while retry < MAX_RETRY:
@@ -319,14 +320,16 @@ class Sync(DefaultHandler):
                             if upload_retry > 0:
                                 time.sleep(36)
                             upload_retry += 1
-                            url_upload = "https://d.pcs.baidu.com/rest/2.0/pcs/superfile2?method=upload&\
-    access_token=%s&path=%s&type=tmpfile&uploadid=%s&partseq=%d" % (access_token, upload_path, uploadid, j)
+                            url_upload = f"https://d.pcs.baidu.com/rest/2.0/pcs/superfile2?method=upload&\
+access_token={access_token}&path={upload_path}&type=tmpfile&uploadid={uploadid}&partseq={j}"
+                            logging.info("url_upload: %s", url_upload)
                             resp_upload = network.request(
                                 "POST", url_upload, max_retry=0, retry_delay=20, headers=headers, data={},
                                 files=[('file', blocks[j])], proxies=PROXY)
                             logging.info("Upload slice %d/%d,%d result: %s",
                                          j, block_list_len, upload_retry, resp_upload)
-                            if resp_upload.get('errno', -1) == 0:
+                            md5_serverside = resp_upload.get("md5", None)
+                            if resp_upload.get("errno", -1) == 0 or blocks_md5[j] == md5_serverside:
                                 upload_retry = 0
                                 break
                         if upload_retry >= MAX_RETRY:
@@ -368,11 +371,13 @@ class Sync(DefaultHandler):
                 retry = 0
                 break
             if retry >= MAX_RETRY:
-                self.write_json(err=last_err)
-                # return
                 with open("./failed_file.log", 'a+') as fout:
                     fout.write(target_path + '\n')
                 continue
+
+        if last_err:
+            self.write_json(err=last_err, status_code=500)
+            return
 
         space.send_ws(name="baidu", msg_type="done", status="success", data={
             "total": attr_len
@@ -419,7 +424,7 @@ class Fix(DefaultHandler):
         })
         headers = {'User-Agent': 'pan.baidu.com'}
         payload = {}
-        last_err = ""
+        last_err = None
         for i in range(attr_len):
             retry = 0
             while retry < MAX_RETRY:
@@ -486,11 +491,13 @@ class Fix(DefaultHandler):
                 retry = 0
                 break
             if retry >= MAX_RETRY:
-                self.write_json(err=last_err)
-                # return
                 with open("./failed_file.log", 'a+') as fout:
                     fout.write(target_path + '\n')
                 continue
+
+        if last_err:
+            self.write_json(err=last_err, status_code=500)
+            return
 
         space.send_ws(name="baidu", msg_type="done", status="success", data={
             "total": attr_len

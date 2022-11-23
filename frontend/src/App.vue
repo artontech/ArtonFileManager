@@ -7,14 +7,12 @@
         @hide="onExplorerHeaderHide"
       />
       <BaiduNetdiskHeader v-if="hasBaiduNetdiskHeader" />
-      <a-layout-content :style="{ margin: '16px 16px 0', overflow: 'initial' }">
-        <a-card class="view-wrapper" :style="{'--heightoffset': wrapperHeightOffset}">
+      <a-layout-content>
+        <a-card class="view-wrapper">
           <router-view :key="$route.fullPath" />
         </a-card>
       </a-layout-content>
-      <a-layout-footer :style="{ textAlign: 'center' }"
-        >File Manager ©2020 Created by Arton</a-layout-footer
-      >
+      <a-layout-footer>File Manager ©2020 Created by Arton</a-layout-footer>
     </a-layout>
   </a-layout>
 </template>
@@ -37,9 +35,6 @@ export default {
     hasBaiduNetdiskHeader() {
       return ["BaiduSync"].indexOf(this.$route.name) > -1;
     },
-    wrapperHeightOffset() {
-      return this.hasExplorerHeader ? "100px" : "53px";
-    },
   },
   data() {
     return {
@@ -56,6 +51,15 @@ export default {
 </script>
 
 <style>
+
+html,body {
+  height: 100vh;
+}
+
+#app,.ant-layout,.view-wrapper {
+  height: 100%;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -64,15 +68,33 @@ export default {
 }
 
 .ant-card-body {
+  height: 100%;
   padding: 12px;
 }
 
-.ant-layout-footer {
-  padding: 6px 24px;
+.ant-drawer-body {
+  padding: 5px 12px;
 }
 
-.view-wrapper {
-  min-height: calc(100vh - var(--heightoffset));
-  max-height: calc(100vh - var(--heightoffset));
+.ant-drawer-close {
+  height: 30px;
+  line-height: 30px;
+  width: 30px;
 }
+
+.ant-drawer-header {
+  padding: 5px 12px;
+}
+
+.ant-layout-content {
+  height: 100%;
+  margin: 8px 8px 0;
+  overflow: initial;
+}
+
+.ant-layout-footer {
+  padding: 3px 24px;
+  text-align: center;
+}
+
 </style>

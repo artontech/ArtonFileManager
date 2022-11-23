@@ -1,5 +1,6 @@
 <template>
   <a-drawer
+    id="tag-drawer"
     placement="right"
     width="80%"
     :closable="true"
@@ -274,12 +275,13 @@ export default {
 </script>
 
 <style>
-.ant-drawer > .ant-drawer-content-wrapper {
-  min-width: 200px;
+
+#tag-drawer .ant-drawer-body {
+  height: calc(100% - 35px);
 }
 
-.ant-drawer-body {
-  padding: 15px;
+#tag-drawer .ant-drawer-content-wrapper {
+  min-width: 200px;
 }
 
 .ant-select-selection {
@@ -287,8 +289,8 @@ export default {
 }
 
 .pic-viewer {
-  margin-top: 15px;
-  height: calc(100vh - 200px);
+  height: calc(100% - 35px);
+  margin-top: 5px;
   width: 100%;
 }
 
@@ -301,4 +303,5 @@ export default {
   max-height: 60px;
   overflow: auto;
 }
+
 </style>

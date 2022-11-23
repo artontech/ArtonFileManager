@@ -13,7 +13,7 @@
 
     <!-- Progress dashboard -->
     <a-divider />
-    <b>{{ $t("check.label1_caption") }}</b>
+    <b>{{$t("check.label1_caption") + `(${now}/${total})`}}</b>
     <a-divider />
     <a-row type="flex" justify="center">
       <a-col :span="8">
@@ -73,12 +73,14 @@ export default {
   data() {
     return {
       info: null,
+      check_date: "",
       check_percent: 0,
       upload_percent: 0,
       status: null, // exception
       checking: false,
       msg: [],
-      check_date: "",
+      now: 0,
+      total: 0,
     };
   },
   beforeMount() {
@@ -104,6 +106,8 @@ export default {
             vm.check_percent = 100.0;
             vm.upload_percent = new Number(percent.toFixed(2));
             vm.checking = true;
+            vm.now = data.now;
+            vm.total = data.total;
             break;
           case "cancel":
             console.log(msg?.status);
@@ -118,6 +122,7 @@ export default {
             vm.check_percent = 100.0;
             vm.upload_percent = 100.0;
             vm.checking = false;
+            vm.now = vm.total;
             break;
           case "msg":
             vm.addMsg(vm.$i18n.t("all.info") + ": " + data?.msg);
@@ -143,7 +148,6 @@ export default {
     const vm = this;
     vm.websocket?.close();
     vm.msg.splice(0, vm.msg.length);
-    vm.path = "";
   },
   methods: {
     addMsg(data) {

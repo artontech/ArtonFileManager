@@ -119,7 +119,8 @@ class Check(DefaultHandler):
                 # check `encrypt_crc32` if exist
                 if attr.encrypt_crc32 is not None:
                     if encrypt_crc32 != attr.encrypt_crc32:
-                        logging.error("[check] check attr %s failed, encrypt_crc32=%s", attr.id, encrypt_crc32)
+                        logging.error("[check] check attr %s failed, encrypt_crc32:%s,%s",
+                            attr.id, encrypt_crc32, attr.encrypt_crc32)
                         space.send_ws(name="check", msg_type="msg", status="run", data={
                             "msg": f"check attr: {attr.id} failed, encrypt_crc32={encrypt_crc32}"
                         })

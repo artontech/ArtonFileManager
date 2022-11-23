@@ -130,20 +130,22 @@
       </FileList>
 
       <!-- Pagination -->
-      <a-pagination
-        class="file-pagination"
-        size="small"
-        show-quick-jumper
-        show-size-changer
-        :hideOnSinglePage="false"
-        :current="page_no"
-        :pageSize="page_size"
-        :pageSizeOptions="['5', '15', '30', '60']"
-        :total="total"
-        :show-total="(total) => `Total ${total}`"
-        @change="page1Change"
-        @showSizeChange="page1Change"
-      />
+      <div class="file-pagination-wrapper">
+        <a-pagination
+          class="file-pagination"
+          size="small"
+          show-quick-jumper
+          show-size-changer
+          :hideOnSinglePage="false"
+          :current="page_no"
+          :pageSize="page_size"
+          :pageSizeOptions="['5', '15', '30', '60']"
+          :total="total"
+          :show-total="(total) => `Total ${total}`"
+          @change="page1Change"
+          @showSizeChange="page1Change"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -785,15 +787,25 @@ export default {
 </script>
 
 <style>
+
+.explorer {
+  height: 100%;
+}
+
 .file-container {
+  height: calc(100% - 56px);
   margin-top: 8px;
 }
 
 .file-pagination {
-  position: absolute;
-  left: 50%;
+  display: inline-block;
   bottom: 5px;
-  transform: translate(-50%, 0%);
+}
+
+.file-pagination-wrapper {
+  height: 24px;
+  width: 100%;
+  text-align: center;
 }
 
 .ant-checkbox-group {

@@ -1,5 +1,6 @@
 <template>
   <a-drawer
+    id="upload-drawer"
     placement="right"
     width="50vw"
     :closable="true"
@@ -10,29 +11,35 @@
     @close="onClose"
   >
     <a-upload-dragger
+      class="upload-dragger"
       name="file"
       :multiple="true"
       :showUploadList="false"
       :before-upload="beforeUpload"
       @change="handleChange"
     >
-      <p class="ant-upload-drag-icon">
-        <a-icon type="inbox" />
-      </p>
-      <p class="ant-upload-text">
-        {{ $t("explorer.upload_drawer.upload_text") }}
-      </p>
-      <p class="ant-upload-hint">
-        {{ $t("explorer.upload_drawer.upload_hint") }}
-      </p>
+      <ul class="upload-wrapper">
+        <li><a-icon type="inbox" /></li>
+        <li>
+          {{ $t("explorer.upload_drawer.upload_text") }}
+          <br />
+          {{ $t("explorer.upload_drawer.upload_hint") }}
+        </li>
+      </ul>
     </a-upload-dragger>
 
     <!-- File list -->
     <a-divider />
-    <b>{{ $t("explorer.upload_drawer.label1_caption") }}</b>
-    <a-divider />
+    <b>
+      {{$t("explorer.upload_drawer.label1_caption") + `(${file_count_dup}/${file_count})`}}
+    </b>
     <div class="filelist-wrapper">
-      <a-table rowKey="fullname" :columns="columns" :data-source="fileList" :pagination="pagination">
+      <a-table
+        rowKey="fullname"
+        :columns="columns"
+        :data-source="fileList"
+        :pagination="pagination"
+      >
         <span slot="name" slot-scope="item">
           <a-tooltip :title="item.fullname">
             {{ item.name }}
@@ -45,38 +52,47 @@
             {{ item.dupname }}
           </a-tooltip>
         </span>
-        
+
         <span slot="action" slot-scope="item">
-          <a-icon v-if="item.state == 'done'" type="check-circle" theme="twoTone" two-tone-color="#52c41a" />
-          <a-icon v-else-if="item.state == 'err'" type="close-circle" theme="twoTone" two-tone-color="#eb2f96" />
+          <a-icon
+            v-if="item.state == 'done'"
+            type="check-circle"
+            theme="twoTone"
+            two-tone-color="#52c41a"
+          />
+          <a-icon
+            v-else-if="item.state == 'err'"
+            type="close-circle"
+            theme="twoTone"
+            two-tone-color="#eb2f96"
+          />
           <a v-else @click="handleRemove(item)"><a-icon type="delete" /></a>
         </span>
       </a-table>
     </div>
-    <a-divider />
-    <div id="btn-wrapper">
-      <a-button
-        @click="btn2Click"
-        class="tool-button"
-      >
-        {{ $t("all.clear") }}
-      </a-button>
-      <a-button
-        class="tool-button"
-        @click="btn3Click"
-      >
-        {{ $t("explorer.upload_drawer.btn3_caption") }}
-      </a-button>
-      <a-button
-        class="tool-button"
-        :disabled="btn1_disabled"
-        :icon="btn1_icon"
-        :loading="btn1_loading"
-        :type="btn1_type"
-        @click="btn1Click"
-        >{{ $t("all.import") }}</a-button
-      >
-    </div>
+
+    <a-row id="btn-wrapper">
+      <a-col :span="2"> </a-col>
+      <a-col :span="20">
+        <a-button @click="btn2Click" class="tool-button">
+          {{ $t("all.clear") }}
+        </a-button>
+        <a-button class="tool-button" @click="btn3Click">
+          {{ $t("explorer.upload_drawer.btn3_caption") }}
+        </a-button>
+        <a-button
+          class="tool-button"
+          :disabled="btn1_disabled"
+          :icon="btn1_icon"
+          :loading="btn1_loading"
+          :type="btn1_type"
+          @click="btn1Click"
+        >
+          {{ $t("all.import") }}
+        </a-button>
+      </a-col>
+      <a-col :span="2"> </a-col>
+    </a-row>
   </a-drawer>
 </template>
 
@@ -92,10 +108,13 @@ export default {
       btn1_type: "primary",
       columns: [],
       fileList: [],
+      file_count: 0,
+      file_count_dup: 0,
       mod: false,
       pagination: {
         pageSize: 8,
         position: "top",
+        size: "small",
       },
       repository: null,
       setting: null,
@@ -113,7 +132,7 @@ export default {
     const columns = [
       {
         title: vm.$i18n.t("explorer.upload_drawer.table1.name"),
-        key: 'name',
+        key: "name",
         scopedSlots: { customRender: "name" },
       },
       {
@@ -125,8 +144,8 @@ export default {
       {
         align: "center",
         title: vm.$i18n.t("explorer.upload_drawer.table1.action"),
-        key: 'action',
-        scopedSlots: { customRender: 'action' },
+        key: "action",
+        scopedSlots: { customRender: "action" },
         width: 80,
       },
     ];
@@ -135,8 +154,7 @@ export default {
     });
   },
 
-  beforeDestroy() {
-  },
+  beforeDestroy() {},
 
   props: ["current", "visible"],
 
@@ -152,8 +170,7 @@ export default {
       const vm = this;
       vm.mod = false;
     },
-    afterVisibleChange(visible) {
-    },
+    afterVisibleChange(visible) {},
     beforeUpload(file) {
       return false;
     },
@@ -169,7 +186,7 @@ export default {
         file: info.file,
         name,
         fullname: info.file.name,
-        state: 'none',
+        state: "none",
       };
       vm.fileList = [...vm.fileList, fileInfo];
       vm.btn1_disabled = false;
@@ -181,12 +198,16 @@ export default {
       const onError = () => {
         console.log(`[Error] failed to check exist ${info.file.name}`);
       };
+      vm.file_count = 0;
+      vm.file_count_dup = 0;
       vm.$http
         .post(`http://${vm.setting.address}/file/exist`, formData, options)
         .then(
           (resp) => {
             if (resp.body.status === "success") {
               let dupname = resp.data.data;
+              vm.file_count += 1;
+              if (dupname != "no_attr") vm.file_count_dup += 1;
               if (dupname.length > 30) {
                 dupname = `${dupname.slice(0, 50)}...`;
               }
@@ -219,12 +240,17 @@ export default {
     },
     btn2Click() {
       const vm = this;
+      vm.file_count = 0;
+      vm.file_count_dup = 0;
       vm.fileList.splice(0, vm.fileList.length);
       vm.btn1_disabled = true;
     },
     btn3Click() {
       const vm = this;
-      vm.fileList = vm.fileList.filter(item => item.dup == "no_attr" && item.state != "done");
+      vm.file_count_dup = 0;
+      vm.fileList = vm.fileList.filter(
+        (item) => item.dup == "no_attr" && item.state != "done"
+      );
       vm.btn1_disabled = vm.fileList.length <= 0;
     },
     upload(info) {
@@ -246,7 +272,10 @@ export default {
         .post(`http://${vm.setting.address}/file/upload`, formData, options)
         .then(
           (resp) => {
-            if (resp.body.status === "success" && resp.data.status === "success") {
+            if (
+              resp.body.status === "success" &&
+              resp.data.status === "success"
+            ) {
               info.state = "done";
               vm.mod = true; // Add mod flag
             } else {
@@ -263,8 +292,41 @@ export default {
 </script>
 
 <style>
-.ant-drawer > .ant-drawer-content-wrapper {
-  min-width: 500px;
+#upload-drawer .ant-drawer-body {
+  height: calc(100% - 35px);
+}
+
+#upload-drawer .ant-drawer-content-wrapper {
+  min-width: 300px;
+}
+
+.upload-dragger .ant-upload.ant-upload-drag {
+  height: 20%;
+  min-height: 90px;
+}
+
+.upload-wrapper {
+  display: inline-block;
+  padding-left: 0;
+}
+
+.upload-wrapper::before {
+  content: "";
+  display: inline-block;
+  height: 100%;
+  position: relative;
+  vertical-align: middle;
+  width: 0;
+}
+
+.upload-wrapper .anticon {
+  color: #40a9ff;
+  font-size: 48px;
+}
+
+.upload-wrapper > li {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .tooltip-structure {
@@ -273,14 +335,17 @@ export default {
 
 .filelist-wrapper {
   min-height: 50px;
-  max-height: calc(100vh - 400px);
+  height: calc(80% - 130px);
   overflow: auto;
 }
 
+.filelist-wrapper .ant-table-wrapper {
+  height: 100%;
+}
+
 #btn-wrapper {
-  position: absolute;
-  left: 50%;
   bottom: 6px;
-  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100%;
 }
 </style>

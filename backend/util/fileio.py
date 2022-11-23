@@ -11,48 +11,48 @@ from Cryptodome.Cipher import AES
 from Cryptodome.Random import get_random_bytes
 
 FILE_TYPE_MAP = {
-# Image format
-"bmp": {"ico": "image", "cv": True, "web_img": True},
-"dib": {"ico": "image", "cv": True},
-"jp2": {"ico": "image", "cv": True},
-"jpe": {"ico": "image", "cv": True},
-"jpg": {"ico": "image", "cv": True, "web_img": True},
-"jpeg": {"ico": "image", "cv": True, "web_img": True}, 
-"pbm": {"ico": "image", "cv": True},
-"pgm": {"ico": "image", "cv": True},
-"png": {"ico": "image", "cv": True, "web_img": True},
-"ppm": {"ico": "image", "cv": True}, 
-"ras": {"ico": "image", "cv": True},
-"sr": {"ico": "image", "cv": True},
-"tif": {"ico": "image", "cv": True},
-"tiff": {"ico": "image", "cv": True},
-"webp": {"ico": "image", "cv": True, "web_img": True},
-"ico": {"ico": "image", "web_img": True},
-"jfif": {"ico": "image", "cv": True, "web_img": True},
+    # Image format
+    "bmp": {"ico": "image", "cv": True, "web_img": True},
+    "dib": {"ico": "image", "cv": True},
+    "jp2": {"ico": "image", "cv": True},
+    "jpe": {"ico": "image", "cv": True},
+    "jpg": {"ico": "image", "cv": True, "web_img": True},
+    "jpeg": {"ico": "image", "cv": True, "web_img": True}, 
+    "pbm": {"ico": "image", "cv": True},
+    "pgm": {"ico": "image", "cv": True},
+    "png": {"ico": "image", "cv": True, "web_img": True},
+    "ppm": {"ico": "image", "cv": True}, 
+    "ras": {"ico": "image", "cv": True},
+    "sr": {"ico": "image", "cv": True},
+    "tif": {"ico": "image", "cv": True},
+    "tiff": {"ico": "image", "cv": True},
+    "webp": {"ico": "image", "cv": True, "web_img": True},
+    "ico": {"ico": "image", "web_img": True},
+    "jfif": {"ico": "image", "cv": True, "web_img": True},
 
-# Video format
-"avi": {"ico": "video", "web": True},
-"f4v": {"ico": "video"},
-"flv": {"ico": "video"},
-"gif": {"ico": "video", "web": True, "web_img": True},
-"kux": {"ico": "video"},
-"mkv": {"ico": "video"},
-"mov": {"ico": "video"},
-"mp4": {"ico": "video", "web": True},
-"mpg": {"ico": "video"},
-"rm": {"ico": "video"},
-"wmv": {"ico": "video"},
+    # Video format
+    "avi": {"ico": "video", "web": True},
+    "f4v": {"ico": "video"},
+    "flv": {"ico": "video"},
+    "gif": {"ico": "video", "web": True, "web_img": True},
+    "kux": {"ico": "video"},
+    "mkv": {"ico": "video"},
+    "mov": {"ico": "video"},
+    "mp4": {"ico": "video", "web": True},
+    "mpg": {"ico": "video"},
+    "rm": {"ico": "video"},
+    "wmv": {"ico": "video"},
 
-# Music format
-"mp3": {"ico": "music"},
+    # Music format
+    "mp3": {"ico": "music"},
 
-# Other format
-"css": {"ico": "txt"},
-"html": {"ico": "txt"},
-"txt": {"ico": "txt"},
-"ini": {"ico": "config"},
-"exe": {"ico": "exe"},
-"py": {"ico": "exe"},
+    # Other format
+    "css": {"ico": "txt"},
+    "html": {"ico": "txt"},
+    "txt": {"ico": "txt"},
+    "ini": {"ico": "config"},
+    "exe": {"ico": "exe"},
+    "py": {"ico": "exe"},
 }
 
 def get_file_type(ext: str) -> dict:
