@@ -32,7 +32,7 @@
             @rename="rename"
           >
             <!-- Image -->
-            <div>
+            <div :class='{"file-selected": selected == item.id}'>
               <img
                 v-show="item.thumb_done"
                 class="list-thumb"
@@ -143,7 +143,7 @@ export default {
     DropdownMenu: () => import("@/components/DropdownMenu.vue"),
   },
   computed: {},
-  props: ["data"],
+  props: ["data", "selected"],
   methods: {
     addTag(target, event) {
       this.$emit("add-tag", target, event);

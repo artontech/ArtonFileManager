@@ -448,6 +448,9 @@ class List(DefaultHandler):
                 if show_thumb and fileio.is_web_img(obj.ext):
                     obj.thumb = "/media/link?wid=%s&attribute=%s" % (
                         wid, obj.attribute)
+                elif show_thumb and fileio.is_video_thumb(obj.ext):
+                    obj.thumb = "/media/videothumb?wid=%s&attribute=%s" % (
+                        wid, obj.attribute)
 
                 # get attr
                 attr_list = space.driver.get_attrs(item_id=obj.attribute)

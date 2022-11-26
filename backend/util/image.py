@@ -1,5 +1,6 @@
 ''' image '''
 
+from typing import Tuple
 import cv2
 import numpy as np
 
@@ -73,14 +74,16 @@ def p_hash(img) -> int:
     return phash
 
 
-def hamming(hash1: int, hash2: int) -> int:
+def hamming(hash1: int, hash2: int) -> Tuple[int, int]:
     ''' get hamming distance '''
-    d = hash1 ^ hash2
-    result = 0
+    d = int(hash1) ^ int(hash2)
+    distance = 0
+    length = 0
     while d != 0:
-        result += d & 1
+        distance += d & 1
+        length += 1
         d = d >> 1
-    return result
+    return distance, length
 
 
 def calculate(image1, image2):

@@ -159,6 +159,8 @@ const setting = {
     checkbox2: "Cache picture",
     label1: "Export path:",
     edit1_placeholder: "export path",
+    label2: "Video thumb:",
+    label3: "Size limit:",
   },
 };
 

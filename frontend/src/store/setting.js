@@ -6,6 +6,8 @@ const setting = {
       encrypt: "AES", // Default encrypt algo
       showthumb: true, // Show pic thumb or not
       cachethumb: false, // Cache thumb or not
+      chunklimit: 10, // Limit video thumb chunk count
+      thumbtype: "gif", // Video thumb type
       exportpath: "", // Export path
       nocache: undefined, // Nocache content
     },

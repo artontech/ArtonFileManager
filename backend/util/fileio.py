@@ -5,6 +5,7 @@ import hashlib
 import io
 import os
 import shutil
+import sys
 import zlib
 from urllib import parse
 from Cryptodome.Cipher import AES
@@ -29,19 +30,19 @@ FILE_TYPE_MAP = {
     "webp": {"ico": "image", "cv": True, "web_img": True},
     "ico": {"ico": "image", "web_img": True},
     "jfif": {"ico": "image", "cv": True, "web_img": True},
+    "gif": {"ico": "image", "web_img": True},
 
     # Video format
-    "avi": {"ico": "video", "web": True},
-    "f4v": {"ico": "video"},
-    "flv": {"ico": "video"},
-    "gif": {"ico": "video", "web": True, "web_img": True},
+    "avi": {"ico": "video", "video_thumb": True},
+    "f4v": {"ico": "video", "video_thumb": True},
+    "flv": {"ico": "video", "video_thumb": True},
     "kux": {"ico": "video"},
-    "mkv": {"ico": "video"},
-    "mov": {"ico": "video"},
-    "mp4": {"ico": "video", "web": True},
-    "mpg": {"ico": "video"},
-    "rm": {"ico": "video"},
-    "wmv": {"ico": "video"},
+    "mkv": {"ico": "video", "video_thumb": True},
+    "mov": {"ico": "video", "video_thumb": True},
+    "mp4": {"ico": "video", "video_thumb": True},
+    "mpg": {"ico": "video", "video_thumb": True},
+    "rm": {"ico": "video", "video_thumb": True},
+    "wmv": {"ico": "video", "video_thumb": True},
 
     # Music format
     "mp3": {"ico": "music"},
@@ -55,6 +56,14 @@ FILE_TYPE_MAP = {
     "py": {"ico": "exe"},
 }
 
+def read_bin(fn: str, __size: int = None) -> bytes:
+    with open(fn, 'rb') as f:
+        return f.read(__size)
+
+def write_bin(fn: str, data: bytes) -> int:
+    with open(fn, 'wb') as f:
+        return f.write(data)
+
 def get_file_type(ext: str) -> dict:
     return FILE_TYPE_MAP.get(ext.strip('.'), {})
 
@@ -67,6 +76,11 @@ def is_web_img(ext: str) -> bool:
     if ext == "":
         return False
     return get_file_type(ext).get("web_img", False)
+
+def is_video_thumb(ext: str) -> bool:
+    if ext == "":
+        return False
+    return get_file_type(ext).get("video_thumb", False)
 
 def get_icon_name(ext: str) -> bool:
     default = "unknown"
@@ -202,7 +216,13 @@ def decrypt_file(path: str, key: str):
 
     return data
 
-def decrypt_file_stream(path: str, key: str, file_out: io.FileIO = None, calc_crc_in=False, calc_crc_out=False):
+def decrypt_file_stream(
+        path: str,
+        key: str,
+        file_out: io.FileIO = None,
+        calc_crc_in=False,
+        calc_crc_out=False,
+        chunk_limit: int = None):
     ''' AES decrypt with crc32 checksum '''
     buffer = bytearray()
     def write_buffer(data: bytes):
@@ -225,10 +245,12 @@ def decrypt_file_stream(path: str, key: str, file_out: io.FileIO = None, calc_cr
 
         cipher = AES.new(key_bytes, AES.MODE_EAX, nonce)
 
-        while True:
+        for i in range(sys.maxsize):
             chunk_in = file_in.read(chunk_size)
             chunk_out = cipher.decrypt(chunk_in)
             if len(chunk_out) == 0:
+                break
+            if chunk_limit is not None and i > chunk_limit:
                 break
             if calc_crc_in:
                 crc32_in = zlib.crc32(chunk_in, crc32_in)
@@ -238,10 +260,10 @@ def decrypt_file_stream(path: str, key: str, file_out: io.FileIO = None, calc_cr
 
     return bytes(buffer), crc32_in, crc32_out
 
-def decrypt_file_to(path: str, key: str, dst: str):
+def decrypt_file_to(path: str, key: str, dst: str, chunk_limit: int = None):
     ''' AES decrypt '''
     with open(dst, "wb+") as file_out:
-        decrypt_file_stream(path, key, file_out=file_out)
+        decrypt_file_stream(path, key, file_out=file_out, chunk_limit=chunk_limit)
 
 def read_text_file(path: str) -> str:
     with codecs.open(path, "r", "utf-8") as fp:

@@ -18,6 +18,7 @@
           class="file-card"
           v-for="item in data"
           :alt="item.fullname"
+          :class='{"file-selected": selected == item.id}'
           :hoverable="true"
           :key="`${item.type}-${item.id}`"
           @dblclick="goto(item, $event)"
@@ -106,7 +107,7 @@ export default {
     DropdownMenu: () => import("@/components/DropdownMenu.vue"),
   },
   computed: {},
-  props: ["data"],
+  props: ["data", "selected"],
   methods: {
     addTag(target, event) {
       this.$emit("add-tag", target, event);

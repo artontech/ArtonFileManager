@@ -8,6 +8,7 @@ from tornado.concurrent import run_on_executor
 from backend.controller.default import (DefaultHandler, DefaultWSHandler)
 from backend.model.file import File
 from backend.service import workspace
+from backend.util import (image)
 
 class SearchFileWebSocket(DefaultWSHandler):
     name = "searchfile"
@@ -85,14 +86,36 @@ class Search(DefaultHandler):
 
     @run_on_executor
     def search_hash(self, space, ahash, dhash, phash):
-        # TODO: search hash by hamming distance
-        attrs = space.driver.get_attrs(ahash=ahash, dhash=dhash, phash=phash)
+        attr_count = space.driver.table_size("attribute", "WHERE `delete`=0")
+        cache = space.get_cache("attribute", [])
+        if attr_count == len(cache):
+            attrs = cache
+        else:
+            attrs = space.driver.get_attr_hashes(delete=0)
+            space.set_cache("attribute", attrs)
         if attrs is None:
             self.write_json(err="db", status_code=500)
             return
 
-        result_list = []
+        attr_list = []
         for attr in attrs:
+            if ahash is not None:
+                d, l = image.hamming(ahash, attr.ahash)
+            elif dhash is not None:
+                d, l = image.hamming(dhash, attr.dhash)
+            else:
+                d, l = image.hamming(phash, attr.phash)
+
+            attr.hamming_distance = 1 if l == 0 else d / l
+
+            if attr.hamming_distance > 0.5:
+                attr_list.append(attr)
+
+        attr_list.sort(key=lambda item: item.hamming_distance, reverse=True)
+        attr_list = attr_list[:20] # limit to 20
+
+        result_list = []
+        for attr in attr_list:
             file_list = self.get_files(space, attr.id)
             result_list.extend(file_list)
 

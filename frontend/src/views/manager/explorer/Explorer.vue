@@ -90,6 +90,7 @@
         ref="fileGrid"
         v-if="file_view == 'grid'"
         :data="data"
+        :selected="selected"
         @add-tag="addTag"
         @check="check"
         @del="del"
@@ -111,6 +112,7 @@
         ref="fileList"
         v-else-if="file_view == 'list'"
         :data="data"
+        :selected="selected"
         @add-tag="addTag"
         @check="check"
         @del="del"
@@ -176,6 +178,7 @@ export default {
       page_no: 1,
       page_size: 15,
       current_dir: {id: 0, name: "/"},
+      selected: undefined,
       total: 0,
     };
   },
@@ -215,6 +218,7 @@ export default {
       need_update = true;
     }
     vm.current = vm.$route.query.current ?? nocache.current;
+    vm.selected = vm.$route.query.selected;
     vm.dir_info = nocache.dir_info;
     vm.file_view = nocache.file_view;
     vm.newDirInfo();
@@ -517,7 +521,8 @@ export default {
                   const obj_ord = vm.data.length;
                   if (obj.thumb) {
                     obj.thumb = `http://${vm.setting.address}` +
-                      `${obj.thumb}&filename=thumb&cache=${vm.setting.cachethumb}`;
+                      `${obj.thumb}&filename=thumb&cache=${vm.setting.cachethumb}&` +
+                      `limit=${vm.setting.chunklimit}&thumbtype=${vm.setting.thumbtype}`;
                   }
                 } else {
                   console.log("[Error] unknown type", obj);
@@ -806,6 +811,10 @@ export default {
   height: 24px;
   width: 100%;
   text-align: center;
+}
+
+.file-selected {
+  border: 0.15rem solid #1890ff;
 }
 
 .ant-checkbox-group {

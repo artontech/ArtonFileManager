@@ -168,6 +168,8 @@ const setting = {
     checkbox2: "缓存图片",
     label1: "导出路径：",
     edit1_placeholder: "导出路径",
+    label2: "视频缩略图：",
+    label3: "截取范围：",
   },
 };
 

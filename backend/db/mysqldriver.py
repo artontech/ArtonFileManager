@@ -385,6 +385,17 @@ class MySQLDriver(Driver):
             self.db_name, table, sql_where)
         return sql
 
+    def table_size(self, table: str, sql_where: str = "") -> int:
+        try:
+            sql = f"SELECT count(0) FROM `{self.db_name}`.`{table}` {sql_where}"
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                count = cursor.fetchone()[0]
+        except Exception as err:
+            logging.warning(sql)
+            raise err
+        return count
+
     def get_dir_file_list(self, db_results):
         ''' get dir file list '''
         result = []
@@ -790,6 +801,39 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             with self.open_db().cursor() as cursor:
                 cursor.execute(sql)
                 results = get_attribute_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    @mylock
+    def get_attr_hashes(
+            self,
+            delete: int = 0
+        ):
+        ''' list attribute hashes '''
+        results = []
+
+        sql_where = ""
+        if delete is not None:
+            sql_where += " and `delete`=%d" % (delete)
+        sql_where = sql_where.strip().lstrip('and')
+        if sql_where == "":
+            return results
+
+        sql = "SELECT id,ahash,dhash,phash FROM `%s`.attribute WHERE %s" % (
+            self.db_name, sql_where)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = []
+                for row in cursor.fetchall():
+                    obj = Attribute()
+                    obj.id = row[0]
+                    obj.ahash = row[1]
+                    obj.dhash = row[2]
+                    obj.phash = row[3]
+                    results.append(obj)
         except Exception as e:
             logging.warning(sql)
             raise e

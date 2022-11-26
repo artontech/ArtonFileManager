@@ -1,8 +1,7 @@
 <template>
   <div class="basic">
-    <a-row>
-      <a-col :span="1"></a-col>
-      <a-col :span="2">
+    <a-row :gutter="[0,16]">
+      <a-col :span="4">
         <p class="label">{{$t('setting.basic.label1')}}</p>
       </a-col>
       <a-col :span="20">
@@ -20,11 +19,9 @@
           >{{$t('setting.basic.btn1_caption')}}</a-button>
         </a-input-search>
       </a-col>
-      <a-col :span="1"></a-col>
     </a-row>
     <a-row :gutter="[0,16]">
-      <a-col :span="1"></a-col>
-      <a-col :span="2">
+      <a-col :span="4">
         <p class="label">{{$t('setting.basic.label2')}}</p>
       </a-col>
       <a-col :span="20">
@@ -36,7 +33,6 @@
           allowClear
         />
       </a-col>
-      <a-col :span="1"></a-col>
     </a-row>
   </div>
 </template>
@@ -94,6 +90,6 @@ export default {
 
 .label {
   padding-top: 3px;
-  text-align: center;
+  text-align: left;
 }
 </style>

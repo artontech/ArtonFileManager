@@ -25,6 +25,7 @@ class WorkSpace():
         self.path = path
         self.ws_list = []
         self.cancel_flag = multiprocessing.Array("i", [0 for _ in CANCELABLE_HANDLER_ID])
+        self.cache = {}
 
         # load json config
         if sys.platform == 'win32':
@@ -90,6 +91,14 @@ class WorkSpace():
             self.cancel_flag[handler_id] = 0
             return True
         return False
+
+    def set_cache(self, key: str, data):
+        ''' set cache '''
+        self.cache[key] = data
+
+    def get_cache(self, key: str, default=None):
+        ''' set cache '''
+        return self.cache.get(key, default)
 
 
 def contains_path(path):

@@ -24,6 +24,7 @@ class Attribute(DefaultModel):
 
     # viewer
     fs_id = 0
+    hamming_distance = 0
 
     def none(self):
         ''' clear '''
@@ -48,6 +49,9 @@ class Attribute(DefaultModel):
         self.key = None
         self.delete = None
         self.check_date = None
+
+        self.fs_id = None
+        self.hamming_distance = None
 
 def get_attribute(row) -> Attribute:
     obj = Attribute()

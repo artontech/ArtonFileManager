@@ -63,7 +63,7 @@
       <!-- Operation -->
       <a-row>
         <a-col :span="24" :style="{ textAlign: 'right' }">
-          <a-button type="primary" html-type="submit">
+          <a-button type="primary" html-type="submit" :loading="searching">
             {{$t("search_file.btn1_caption")}}
           </a-button>
           <a-button :style="{ marginLeft: '8px' }" @click="handleReset">
@@ -80,7 +80,7 @@
     <div class="logging-wrapper">
       <a-list item-layout="horizontal" size="small" :data-source="search_result">
         <a-list-item slot="renderItem" slot-scope="item">
-          <a slot="actions" @click="goto(item.dir)" >{{$t("search_file.view_dir")}}</a>
+          <a slot="actions" @click="goto(item)" >{{$t("search_file.view_dir")}}</a>
           <span>{{ item.name + item.ext }}</span>
         </a-list-item>
       </a-list>
@@ -97,6 +97,7 @@ export default {
     return {
       form: this.$form.createForm(this, { name: 'advanced_search' }),
       search_result: [],
+      searching: false,
     };
   },
   beforeMount() {
@@ -144,7 +145,8 @@ export default {
       vm.$router.push({
         name: 'Explorer',
         query: {
-          current: target
+          current: target.dir,
+          selected: target.id,
         },
       });
     },
@@ -171,6 +173,8 @@ export default {
           vm.$message.error(vm.$i18n.t("all.param_invalid"));
           return;
         }
+        vm.searching = true;
+        vm.search_result.splice(0, vm.search_result.length);
 
         const body = {
           ...values,
@@ -178,10 +182,10 @@ export default {
         };
         vm.http_post(`http://${vm.setting.address}/searchfile/search`, body)
           .then((data) => {
-            vm.search_result.splice(0, vm.search_result.length);
             for (const i in data) {
               vm.search_result.push(data[i]);
             }
+            vm.searching = false;
 
             // update vuex
             vm.$store.commit("updateExplorerNocache", {
@@ -190,6 +194,7 @@ export default {
           })
           .catch((err) => {
             console.log(`[Error] failed to search file ${err}`);
+            vm.searching = false;
           });
       });
     },
