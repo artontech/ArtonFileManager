@@ -1,6 +1,6 @@
-numpy==1.19.1
-opencv-python==4.4.0.40
-Pillow==7.1.2
+numpy
+opencv-python
+Pillow
 pycryptodomex==3.9.8
 PyMySQL==0.10.0
 tornado==6.0.4
