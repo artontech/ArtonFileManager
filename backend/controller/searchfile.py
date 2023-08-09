@@ -40,8 +40,8 @@ class SearchFileWebSocket(DefaultWSHandler):
             self.space.del_ws(self)
 
 
-class Search(DefaultHandler):
-    ''' search '''
+class SearchFile(DefaultHandler):
+    ''' search file '''
 
     def data_received(self, chunk):
         pass
@@ -55,6 +55,81 @@ class Search(DefaultHandler):
         ''' post '''
         wid = self.get_arg("wid")
         attr_id = self.get_arg("attr_id", default=None)
+        name = self.get_arg("name", default=None)
+
+        # get workspace first
+        space = workspace.get_by_id(wid)
+        if space is None or not space.enabled:
+            self.write_json(err="no_workspace")
+            return
+
+        if attr_id is None and name is None:
+            self.write_json(err="unknown_args")
+            return
+
+        yield self.search_attr(space, attr_id, name)
+
+    def get_files(self, space, attr_id, name):
+        file_model = File()
+        file_model.none()
+        file_model.attribute = attr_id
+        file_model.name = name
+        file_model.delete = 0
+        file_list, _ = space.driver.get_files(file_model)
+        return file_list
+
+    @run_on_executor
+    def search_attr(self, space, attr_id, name):
+        self.write_json(status="success", data=self.get_files(space, attr_id, name))
+
+
+class SearchDir(DefaultHandler):
+    ''' search dir '''
+
+    def data_received(self, chunk):
+        pass
+
+    def get(self):
+        ''' get '''
+        self.post()
+
+    @tornado.gen.coroutine
+    def post(self):
+        ''' post '''
+        wid = self.get_arg("wid")
+        name = self.get_arg("name", default=None)
+
+        # get workspace first
+        space = workspace.get_by_id(wid)
+        if space is None or not space.enabled:
+            self.write_json(err="no_workspace")
+            return
+
+        if name is None:
+            self.write_json(err="unknown_args")
+            return
+
+        yield self.search_attr(space, name)
+
+    @run_on_executor
+    def search_attr(self, space, name):
+        self.write_json(status="success", data=space.driver.search_dirs(delete=0, name=name))
+
+
+class SearchHash(DefaultHandler):
+    ''' search hash '''
+
+    def data_received(self, chunk):
+        pass
+
+    def get(self):
+        ''' get '''
+        self.post()
+
+    @tornado.gen.coroutine
+    def post(self):
+        ''' post '''
+        wid = self.get_arg("wid")
         ahash = self.get_arg("ahash", default=None)
         dhash = self.get_arg("dhash", default=None)
         phash = self.get_arg("phash", default=None)
@@ -65,12 +140,11 @@ class Search(DefaultHandler):
             self.write_json(err="no_workspace")
             return
 
-        if attr_id is not None:
-            yield self.search_attr(space, attr_id)
-        elif ahash is not None or dhash is not None or phash is not None:
-            yield self.search_hash(space, ahash, dhash, phash)
-        else:
+        if ahash is None and dhash is None and phash is None:
             self.write_json(err="unknown_args")
+            return
+
+        yield self.search_hash(space, ahash, dhash, phash)
 
     def get_files(self, space, attr_id):
         file_model = File()
@@ -79,10 +153,6 @@ class Search(DefaultHandler):
         file_model.delete = 0
         file_list, _ = space.driver.get_files(file_model)
         return file_list
-
-    @run_on_executor
-    def search_attr(self, space, attr_id):
-        self.write_json(status="success", data=self.get_files(space, attr_id))
 
     @run_on_executor
     def search_hash(self, space, ahash, dhash, phash):

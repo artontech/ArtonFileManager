@@ -166,10 +166,16 @@ const setting = {
 
 const search_file = {
   btn1_caption: "Search",
+  input_name_placeholder: "Name",
   input1_placeholder: "aHash",
   input2_placeholder: "dHash",
   input3_placeholder: "pHash",
   input4_placeholder: "AttrId",
+  prompt_name: "Use % as wildcard",
+  tab1: "File",
+  tab2: "Folder",
+  tab3: "Hash",
+  tab4: "Face",
   view_dir: "view dir",
 };
 

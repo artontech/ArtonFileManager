@@ -146,10 +146,16 @@ const repository = {
 
 const search_file = {
   btn1_caption: "检索",
+  input_name_placeholder: "名称",
   input1_placeholder: "aHash",
   input2_placeholder: "dHash",
   input3_placeholder: "pHash",
   input4_placeholder: "AttrId",
+  prompt_name: "使用%作为通配符",
+  tab1: "文件",
+  tab2: "文件夹",
+  tab3: "哈希",
+  tab4: "人物",
   view_dir: "打开文件位置",
 };
 

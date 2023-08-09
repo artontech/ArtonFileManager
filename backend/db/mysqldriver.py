@@ -707,7 +707,7 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
         if file.dir is not None:
             sql_where += " and `dir`=%d" % (file.dir)
         if file.name is not None:
-            sql_where += " and `name`=%s" % safe(file.name)
+            sql_where += " and `name` like %s" % safe(file.name)
         if file.ext is not None:
             sql_where += " and `ext`=%s" % safe(file.ext)
         sql_where = sql_where.strip().lstrip('and')
@@ -742,6 +742,30 @@ WHERE `query`.`flag` != 0 AND NOT EXISTS (SELECT id FROM `%s` WHERE id = `query`
             sql_where += " and `delete`=%d" % (delete)
         if name is not None:
             sql_where += " and `name`=%s" % safe(name)
+        sql_where = sql_where.strip().lstrip('and')
+        if sql_where == "":
+            return results
+
+        sql = "SELECT * FROM `%s`.dir WHERE %s" % (self.db_name, sql_where)
+        try:
+            with self.open_db().cursor() as cursor:
+                cursor.execute(sql)
+                results = get_dir_list(cursor.fetchall())
+        except Exception as e:
+            logging.warning(sql)
+            raise e
+        return results
+
+    @mylock
+    def search_dirs(self, delete: int = None, name: str = None):
+        ''' search dirs '''
+        results = []
+
+        sql_where = ""
+        if delete is not None:
+            sql_where += " and `delete`=%d" % (delete)
+        if name is not None:
+            sql_where += " and `name` like %s" % safe(name)
         sql_where = sql_where.strip().lstrip('and')
         if sql_where == "":
             return results

@@ -31,7 +31,10 @@
     <!-- File list -->
     <a-divider />
     <b>
-      {{$t("explorer.upload_drawer.label1_caption") + `(${file_count_dup}/${file_count})`}}
+      {{
+        $t("explorer.upload_drawer.label1_caption") +
+        `(${file_count_dup}/${file_count})`
+      }}
     </b>
     <div class="filelist-wrapper">
       <a-table
@@ -248,9 +251,10 @@ export default {
     btn3Click() {
       const vm = this;
       vm.file_count_dup = 0;
-      vm.fileList = vm.fileList.filter(
-        (item) => item.dup == "no_attr" && item.state != "done"
-      );
+      vm.fileList = vm.fileList
+        .filter((item) => item.dup == "no_attr" && item.state != "done")
+        .sort((a, b) => a.fullname.localeCompare(b.fullname));
+      vm.file_count = vm.fileList.length;
       vm.btn1_disabled = vm.fileList.length <= 0;
     },
     upload(info) {
@@ -347,5 +351,14 @@ export default {
   bottom: 6px;
   text-align: center;
   width: 100%;
+}
+</style>
+
+<style scoped>
+#btn-wrapper {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translate(-50%, -50%);
 }
 </style>

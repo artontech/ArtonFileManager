@@ -281,7 +281,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 #import-drawer .ant-drawer-content-wrapper {
   min-width: 300px;
 }

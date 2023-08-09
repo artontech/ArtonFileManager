@@ -1,87 +1,135 @@
 <template>
   <div class="search-file">
-    <a-form class="ant-advanced-search-form" :form="form" @submit="handleSearch">
+    <a-form
+      class="ant-advanced-search-form"
+      :form="form"
+      @submit="handleSearch"
+    >
       <a-row :gutter="24">
-        <!-- input ahash -->
-        <a-col key="ahash" :span="8">
-          <a-form-item :label="$t('search_file.input1_placeholder')">
-            <a-input
-              v-decorator="[
-                `ahash`,
-              ]"
-              :placeholder="$t('search_file.input1_placeholder')"
-            />
-          </a-form-item>
-        </a-col>
-        
-        <!-- input dhash -->
-        <a-col key="dhash" :span="8">
-          <a-form-item :label="$t('search_file.input2_placeholder')">
-            <a-input
-              v-decorator="[
-                `dhash`,
-              ]"
-              :placeholder="$t('search_file.input2_placeholder')"
-            />
-          </a-form-item>
-        </a-col>
-        
-        <!-- input phash -->
-        <a-col key="phash" :span="8">
-          <a-form-item :label="$t('search_file.input3_placeholder')">
-            <a-input
-              v-decorator="[
-                `phash`,
-              ]"
-              :placeholder="$t('search_file.input3_placeholder')"
-            />
-          </a-form-item>
-        </a-col>
+        <a-tabs v-model="mode" type="card" tab-position="top">
+          <!-- Operation -->
+          <a-row slot="tabBarExtraContent">
+            <a-col :span="24" :style="{ textAlign: 'right' }">
+              <a-button type="primary" html-type="submit" :loading="searching">
+                {{ $t("search_file.btn1_caption") }}
+              </a-button>
+              <a-button :style="{ marginLeft: '8px' }" @click="handleReset">
+                {{ $t("all.clear") }}
+              </a-button>
+            </a-col>
+          </a-row>
 
-        <!-- input attr_id -->
-        <a-col key="attr-id" :span="8">
-          <a-form-item :label="$t('search_file.input4_placeholder')">
-            <a-input-number
-              v-decorator="[
-                `attr_id`,
-                {
-                  rules: [
+          <a-tab-pane key="file" :tab="$t('search_file.tab1')">
+            <!-- input name -->
+            <a-col key="name" :span="16">
+              <a-tooltip>
+                <template slot="title">
+                  {{ $t("search_file.prompt_name") }}
+                </template>
+                <a-form-item :label="$t('search_file.input_name_placeholder')">
+                  <a-input
+                    v-decorator="[
+                      `name`,
+                      // {initialValue: '%%',},
+                    ]"
+                    :placeholder="$t('search_file.input_name_placeholder')"
+                  />
+                </a-form-item>
+              </a-tooltip>
+            </a-col>
+
+            <!-- input attr_id -->
+            <a-col key="attr-id" :span="8">
+              <a-form-item :label="$t('search_file.input4_placeholder')">
+                <a-input-number
+                  v-decorator="[
+                    `attr_id`,
                     {
-                      required: false,
-                      message: '!',
+                      rules: [
+                        {
+                          required: false,
+                          message: '!',
+                        },
+                      ],
                     },
-                  ],
-                },
-              ]"
-              :min="0"
-              :placeholder="$t('search_file.input4_placeholder')"
-            />
-          </a-form-item>
-        </a-col>
-      </a-row>
+                  ]"
+                  :min="0"
+                  :placeholder="$t('search_file.input4_placeholder')"
+                />
+              </a-form-item>
+            </a-col>
+          </a-tab-pane>
+          <a-tab-pane key="dir" :tab="$t('search_file.tab2')">
+            <!-- input name -->
+            <a-col key="name" :span="16">
+              <a-tooltip>
+                <template slot="title">
+                  {{ $t("search_file.prompt_name") }}
+                </template>
+                <a-form-item :label="$t('search_file.input_name_placeholder')">
+                  <a-input
+                    v-decorator="[`name`]"
+                    :placeholder="$t('search_file.input_name_placeholder')"
+                  />
+                </a-form-item>
+              </a-tooltip>
+            </a-col>
+          </a-tab-pane>
+          <a-tab-pane key="hash" :tab="$t('search_file.tab3')">
+            <!-- input ahash -->
+            <a-col key="ahash" :span="8">
+              <a-form-item :label="$t('search_file.input1_placeholder')">
+                <a-input
+                  v-decorator="[`ahash`]"
+                  :placeholder="$t('search_file.input1_placeholder')"
+                />
+              </a-form-item>
+            </a-col>
 
-      <!-- Operation -->
-      <a-row>
-        <a-col :span="24" :style="{ textAlign: 'right' }">
-          <a-button type="primary" html-type="submit" :loading="searching">
-            {{$t("search_file.btn1_caption")}}
-          </a-button>
-          <a-button :style="{ marginLeft: '8px' }" @click="handleReset">
-            {{$t("all.clear")}}
-          </a-button>
-        </a-col>
+            <!-- input dhash -->
+            <a-col key="dhash" :span="8">
+              <a-form-item :label="$t('search_file.input2_placeholder')">
+                <a-input
+                  v-decorator="[`dhash`]"
+                  :placeholder="$t('search_file.input2_placeholder')"
+                />
+              </a-form-item>
+            </a-col>
+
+            <!-- input phash -->
+            <a-col key="phash" :span="8">
+              <a-form-item :label="$t('search_file.input3_placeholder')">
+                <a-input
+                  v-decorator="[`phash`]"
+                  :placeholder="$t('search_file.input3_placeholder')"
+                />
+              </a-form-item>
+            </a-col>
+          </a-tab-pane>
+          <a-tab-pane key="face" :tab="$t('search_file.tab4')"> </a-tab-pane>
+        </a-tabs>
       </a-row>
     </a-form>
 
     <!-- Log -->
     <a-divider />
     <b>{{ $t("all.result") }}</b>
-    <a-divider />
     <div class="logging-wrapper">
-      <a-list item-layout="horizontal" size="small" :data-source="search_result">
+      <a-list
+        item-layout="horizontal"
+        size="small"
+        :data-source="search_result"
+      >
         <a-list-item slot="renderItem" slot-scope="item">
-          <a slot="actions" @click="goto(item)" >{{$t("search_file.view_dir")}}</a>
-          <span>{{ item.name + item.ext }}</span>
+          <div v-if="item.type=='file'" slot="actions">
+            <a-icon type="file-search" @click="goto(item.dir, item.id, item.id)" />
+            <a-divider type="vertical" />
+            <a-icon type="folder-open" @click="goto(item.dir, item.id)" />
+          </div>
+          <div v-if="item.type=='dir'" slot="actions">
+            <a-icon type="folder-open" @click="goto(item.id)" />
+          </div>
+          <span>{{ item.name }}{{ item.ext }}</span>
         </a-list-item>
       </a-list>
     </div>
@@ -95,7 +143,8 @@ import ArtonWebsocket from "@/util/ArtonWebsocket";
 export default {
   data() {
     return {
-      form: this.$form.createForm(this, { name: 'advanced_search' }),
+      form: this.$form.createForm(this, { name: "advanced_search" }),
+      mode: "file",
       search_result: [],
       searching: false,
     };
@@ -113,7 +162,6 @@ export default {
         const msg = JSON.parse(message.data);
         switch (msg?.type) {
           default:
-            console.log(msg);
             break;
         }
       }
@@ -140,13 +188,14 @@ export default {
   },
   methods: {
     /* * * * * * * * Start: Trigger * * * * * * * */
-    goto(target) {
+    goto(current, selected, filter) {
       const vm = this;
       vm.$router.push({
-        name: 'Explorer',
+        name: "Explorer",
         query: {
-          current: target.dir,
-          selected: target.id,
+          current,
+          selected,
+          filter,
         },
       });
     },
@@ -180,7 +229,10 @@ export default {
           ...values,
           wid: vm.repository.wid,
         };
-        vm.http_post(`http://${vm.setting.address}/searchfile/search`, body)
+        vm.http_post(
+          `http://${vm.setting.address}/searchfile/search${vm.mode}`,
+          body
+        )
           .then((data) => {
             for (const i in data) {
               vm.search_result.push(data[i]);
@@ -193,7 +245,7 @@ export default {
             });
           })
           .catch((err) => {
-            console.log(`[Error] failed to search file ${err}`);
+            console.log(`[Error] failed to search ${vm.mode} ${err}`);
             vm.searching = false;
           });
       });
@@ -206,15 +258,22 @@ export default {
 };
 </script>
 
-<style>
-
+<style scoped>
 .ant-advanced-search-form {
-  padding: 24px;
+  padding: 10px 24px;
   background: #fbfbfb;
   border: 1px solid #d9d9d9;
   border-radius: 6px;
 }
 
+.logging-wrapper {
+  min-height: 50px;
+  max-height: calc(100vh - 350px);
+  overflow: auto;
+}
+</style>
+
+<style>
 .ant-advanced-search-form .ant-form-item {
   display: flex;
 }
@@ -222,5 +281,4 @@ export default {
 .ant-advanced-search-form .ant-form-item-control-wrapper {
   flex: 1;
 }
-
 </style>

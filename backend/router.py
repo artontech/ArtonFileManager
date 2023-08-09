@@ -69,7 +69,9 @@ def make_app():
         (r"/check/check", check.Check, dict(name="check")),
 
         (r"/searchfile", searchfile.SearchFileWebSocket),
-        (r"/searchfile/search", searchfile.Search, dict(name="search file")),
+        (r"/searchfile/searchfile", searchfile.SearchFile, dict(name="search file")),
+        (r"/searchfile/searchdir", searchfile.SearchDir, dict(name="search dir")),
+        (r"/searchfile/searchhash", searchfile.SearchHash, dict(name="search hash")),
 
         (r"/", error.NotFound)
     ], **options.settings)

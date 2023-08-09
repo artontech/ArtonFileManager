@@ -494,6 +494,7 @@ export default {
         file: true,
         page_no: vm.page_no,
         page_size: vm.page_size,
+        filter: vm.$route.query.filter,
       };
       const onError = () => {
         console.log(`[Error] failed to list dir ${body.current}`);

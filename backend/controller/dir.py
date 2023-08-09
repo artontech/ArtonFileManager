@@ -410,6 +410,7 @@ class List(DefaultHandler):
         get_file = string.str2bool(self.get_arg("file"))
         page_no = self.get_arg("page_no", default=None)
         page_size = self.get_arg("page_size", default=None)
+        filter_id = self.get_arg("filter", default=None)
 
         # get workspace first
         space = workspace.get_by_id(wid)
@@ -420,7 +421,14 @@ class List(DefaultHandler):
         # fetch from db
         result_list = []
         total = None
-        if get_dir and get_file:
+        if filter_id:
+            file_model = File()
+            file_model.none()
+            file_model.id = int(filter_id)
+            file_model.delete = 0
+            file_list, _ = space.driver.get_files(file_model)
+            result_list.extend(file_list)
+        elif get_dir and get_file:
             result_list, total = space.driver.get_dirs_files(
                 current, page_no, page_size)
         elif get_dir:
